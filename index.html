@@ -6,6 +6,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <title>Space Shooter: Boss Fight</title>
     <script src="phaser.min.js"></script>
+    <!-- NOVO: Biblioteca de áudio para gerar sons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         /* --- Configurações Globais --- */
         :root {
@@ -94,7 +96,6 @@
              text-align: right;
         }
         
-        /* NOVO: Classe para aplicar o efeito de blur condicionalmente */
         .blur-effect {
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
@@ -344,8 +345,7 @@
             fill: var(--ui-blue); 
         }
 
-        /* NOVO: Estilos para a tela de configurações e toggle switch */
-        .start-menu-buttons {
+        .menu-buttons {
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -357,7 +357,7 @@
             align-items: center;
             width: 100%;
             max-width: 300px;
-            margin: 15px 0;
+            margin: 10px 0;
             font-size: clamp(1em, 3vw, 1.2em);
         }
         .toggle-switch {
@@ -398,6 +398,15 @@
         }
         input:checked + .slider:before {
             transform: translateX(26px);
+        }
+        
+        .settings-description {
+            font-size: clamp(0.8em, 2.2vw, 0.9em);
+            color: #b0c4de;
+            max-width: 320px;
+            margin: 5px auto 15px auto;
+            padding: 0 10px;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -471,14 +480,13 @@
             <div id="start-screen" class="overlay-screen" style="visibility: visible; opacity: 1;">
                 <div class="overlay-panel">
                     <h1 id="start-title" class="overlay-title">SPACE SHOOTER</h1>
-                    <div class="start-menu-buttons">
+                    <div class="menu-buttons">
                         <button id="start-game-button" class="overlay-button">INICIAR JOGO</button>
-                        <button id="settings-button" class="overlay-button">CONFIGURAÇÕES</button>
+                        <button id="settings-button-main" class="overlay-button">CONFIGURAÇÕES</button>
                     </div>
                 </div>
             </div>
             
-            <!-- NOVO: Tela de Configurações -->
             <div id="settings-screen" class="overlay-screen">
                 <div class="overlay-panel">
                     <h1 id="settings-title" class="overlay-title">CONFIGURAÇÕES</h1>
@@ -486,6 +494,24 @@
                         <span>Melhor Desempenho</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="performance-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-description">
+                        Desativa efeitos visuais pesados para um jogo mais fluido. Recarregue a página para aplicar.
+                    </div>
+                    <hr style="border-color: var(--ui-border-color); width: 100%;">
+                    <div class="settings-row">
+                        <span>Música</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="music-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-row">
+                        <span>Efeitos Sonoros</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="sfx-toggle">
                             <span class="slider"></span>
                         </label>
                     </div>
@@ -516,7 +542,10 @@
             <div id="pause-screen" class="overlay-screen">
                 <div id="pause-panel" class="overlay-panel">
                     <h1 id="pause-title" class="overlay-title">PAUSADO</h1>
-                    <button id="resume-button" class="overlay-button">RETOMAR</button>
+                    <div class="menu-buttons">
+                        <button id="resume-button" class="overlay-button">RETOMAR</button>
+                        <button id="settings-button-pause" class="overlay-button">CONFIGURAÇÕES</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -538,11 +567,17 @@
         
         let enemySpawnTimer, meteorSpawnTimer;
 
-        // NOVO: Variável para controlar o modo de performance
         let performanceMode = false;
+        let musicEnabled = true;
+        let sfxEnabled = true;
+        let settingsReturnTo = 'start'; // 'start' or 'pause'
+
         let lightPool = [];
         const MAX_LIGHTS = 50;
         let explosionEmitter;
+
+        // NOVO: Variáveis de áudio
+        let playerShootSynth, explosionSynth, backgroundMusic;
 
         const PLAYER_SPRITE_WIDTH = 120, PLAYER_SPRITE_HEIGHT = 120;
         const ENEMY_SPRITE_WIDTH = 120, ENEMY_SPRITE_HEIGHT = 120;
@@ -560,12 +595,10 @@
 
         // --- Lógica de Configurações e Detecção ---
 
-        // NOVO: Função para detectar se é um dispositivo móvel
         function isMobileDevice() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
 
-        // NOVO: Função para aplicar as configurações de performance
         function applyPerformanceSettings() {
             const uiElementsWithBlur = document.querySelectorAll('.info-panel, .progress-bar-background, .stat-item, #shield-timer-container, .overlay-screen .overlay-panel');
             if (performanceMode) {
@@ -575,22 +608,20 @@
             }
         }
 
-        // NOVO: Carrega a configuração salva ou detecta o dispositivo
         function loadSettings() {
-            const savedSetting = localStorage.getItem('spaceShooterPerformanceMode');
-            if (savedSetting !== null) {
-                performanceMode = JSON.parse(savedSetting);
-            } else {
-                // Se não houver configuração salva, ativa o modo performance para mobile por padrão
-                performanceMode = isMobileDevice();
-            }
+            performanceMode = JSON.parse(localStorage.getItem('spaceShooterPerformanceMode')) ?? isMobileDevice();
+            musicEnabled = JSON.parse(localStorage.getItem('spaceShooterMusicEnabled')) ?? true;
+            sfxEnabled = JSON.parse(localStorage.getItem('spaceShooterSfxEnabled')) ?? true;
+
             document.getElementById('performance-toggle').checked = performanceMode;
+            document.getElementById('music-toggle').checked = musicEnabled;
+            document.getElementById('sfx-toggle').checked = sfxEnabled;
+            
             applyPerformanceSettings();
         }
 
         // --- Configuração do Phaser ---
         
-        // NOVO: A configuração do Phaser agora é definida após a detecção de performance
         let game;
         
         function initializeGame() {
@@ -649,6 +680,7 @@
         }
 
         function create() {
+            setupAudio(); // NOVO: Inicializa os sons
             setupVisuals.call(this);
             setupPlayer.call(this);
             setupGroups.call(this);
@@ -689,7 +721,7 @@
             if (!isGameStarted || !player.active || isPaused) return;
 
             stars.children.each(star => {
-                if (star && star.y > config.height + 10) star.destroy();
+                if (star && star.y > game.config.height + 10) star.destroy();
             });
             
             if (player.shieldSprite) player.shieldSprite.setPosition(player.x, player.y);
@@ -700,6 +732,35 @@
         }
         
         // --- Funções de Setup ---
+        
+        // NOVO: Função para criar os sintetizadores de áudio
+        function setupAudio() {
+            playerShootSynth = new Tone.Synth({
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 },
+                volume: -15
+            }).toDestination();
+
+            explosionSynth = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.005, decay: 0.2, sustain: 0 },
+                volume: -10
+            }).toDestination();
+
+            const musicSynth = new Tone.FMSynth({
+                harmonicity: 1.5,
+                modulationIndex: 10,
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
+                modulationEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.1 }
+            }).toDestination();
+            musicSynth.volume.value = -25;
+
+            const notes = ['C2', 'G2', 'Eb3', 'G2', 'C3', 'G2', 'F#2', 'G2'];
+            backgroundMusic = new Tone.Sequence((time, note) => {
+                musicSynth.triggerAttackRelease(note, '8n', time);
+            }, notes, '4n').start(0);
+            Tone.Transport.bpm.value = 90;
+        }
 
         function setupVisuals() {
             const interFont = document.createElement('link');
@@ -716,7 +777,6 @@
             graphics.generateTexture('shield_glow_particle', 96, 96);
             graphics.destroy();
 
-            // NOVO: Ativa as luzes apenas se não estiver em modo performance
             if (!performanceMode) {
                 this.lights.enable();
                 this.lights.setAmbientColor(0x606060); 
@@ -740,7 +800,7 @@
         }
 
         function setupPlayer() {
-            player = this.add.sprite(config.width / 2, config.height - 100, 'player_sprite');
+            player = this.add.sprite(game.config.width / 2, game.config.height - 100, 'player_sprite');
             player.shieldSprite = this.add.sprite(player.x, player.y, 'shield_glow_particle')
                 .setBlendMode('ADD')
                 .setDepth(player.depth - 1)
@@ -773,10 +833,12 @@
             [scoreTextElement, baseEnemyLevelUITextElement, stageTextElement, healthBarFillElement, healthTextElement, shieldBarOverlayElement, shieldTimerElement, damageTextElement, extraShotsTextElement, bossHealthContainerElement, bossHealthBarFillElement] = ids.map(id => document.getElementById(id));
             
             document.getElementById('start-game-button').addEventListener('click', () => startGame.call(this));
+            
             document.getElementById('restart-button').addEventListener('click', () => {
                 updateCursorVisibility(false);
                 document.getElementById('game-over-screen').style.opacity = '0';
                 document.getElementById('game-over-screen').style.visibility = 'hidden';
+                if (musicEnabled) Tone.Transport.stop();
                 resetGameVariables();
                 this.scene.restart();
             });
@@ -825,7 +887,7 @@
             this.physics.add.overlap(player, powerUps, collectPowerUp, null, this);
         }
 
-        // --- Classes do Jogo ---
+        // --- Classes do Jogo (com lógica de performance) ---
 
         class Bullet extends Phaser.Physics.Arcade.Sprite {
             constructor(scene, x, y) {
@@ -885,7 +947,7 @@
                         this.body.setCollideWorldBounds(false);
                         this.scene.time.delayedCall(1000, () => this.kill());
                     }
-                } else if (this.y < -20 || this.y > config.height + 20 || this.x < -20 || this.x > config.width + 20) {
+                } else if (this.y < -20 || this.y > game.config.height + 20 || this.x < -20 || this.x > game.config.width + 20) {
                     this.kill();
                 }
             }
@@ -932,6 +994,7 @@
 
             kill() {
                 if (!this.active) return;
+                if (sfxEnabled) explosionSynth.triggerAttackRelease("8n");
                 this.healthBarBackground.setVisible(false); this.healthBar.setVisible(false);
                 if (!performanceMode) createExplosionLight(this.x, this.y, this.scene);
                 if (explosionEmitter) explosionEmitter.explode(performanceMode ? 8 : 15, this.x, this.y);
@@ -960,7 +1023,7 @@
                 super.preUpdate(time, delta);
                 if(this.active) {
                     this.updateHealthBar();
-                    if (this.y > config.height + this.displayHeight) this.kill();
+                    if (this.y > game.config.height + this.displayHeight) this.kill();
                 }
             }
         }
@@ -1051,7 +1114,7 @@
                 this.scene.tweens.add({
                     targets: this, y: 150, duration: 2000, ease: 'Cubic.easeOut',
                     onComplete: () => {
-                        this.horizontalTween = this.scene.tweens.add({ targets: this, x: { from: 80, to: config.width - 80 }, ease: 'Sine.easeInOut', duration: 3000 / speedMultiplier, repeat: -1, yoyo: true });
+                        this.horizontalTween = this.scene.tweens.add({ targets: this, x: { from: 80, to: game.config.width - 80 }, ease: 'Sine.easeInOut', duration: 3000 / speedMultiplier, repeat: -1, yoyo: true });
                         this.verticalTween = this.scene.tweens.add({ targets: this, y: { from: 120, to: 220 }, ease: 'Sine.easeInOut', duration: 1875 / speedMultiplier, repeat: -1, yoyo: true });
                     }
                 });
@@ -1138,6 +1201,7 @@
             
             kill() {
                 if (!this.active) return;
+                if (sfxEnabled) explosionSynth.triggerAttackRelease("8n");
                 this.setActive(false);
                 if (!performanceMode) createExplosionLight(this.x, this.y, this.scene);
                 this.fireTimer.paused = true;
@@ -1188,7 +1252,7 @@
                 if (this.active && !this.isBoss) {
                     this.updateHealthBar();
                     this.levelText.setPosition(this.x, this.y - this.displayHeight / 2 - 35);
-                    if (this.y > config.height + 50) this.kill();
+                    if (this.y > game.config.height + 50) this.kill();
                 }
             }
         }
@@ -1213,27 +1277,37 @@
 
             preUpdate(time, delta) {
                 super.preUpdate(time, delta);
-                if (this.y > config.height + 50) this.disableBody(true, true);
+                if (this.y > game.config.height + 50) this.disableBody(true, true);
             }
         }
 
         // --- Funções de Lógica do Jogo ---
 
         function startGame() {
+            const scene = game.scene.scenes[0];
+            if (!scene) return; 
+
+            // Inicia o contexto de áudio
+            Tone.start();
+            if (musicEnabled) {
+                Tone.Transport.start();
+            }
+
             updateCursorVisibility(false);
             const startScreen = document.getElementById('start-screen');
             startScreen.style.opacity = '0';
             startScreen.style.visibility = 'hidden';
 
             isGameStarted = true;
-            this.physics.resume();
-            this.time.paused = false;
+            scene.physics.resume();
+            scene.time.paused = false;
 
             toggleApiFullscreen(true);
         }
 
         function firePlayerBullet() {
             if (!player.active) return;
+            if (sfxEnabled) playerShootSynth.triggerAttackRelease("C5", "16n");
             const baseVy = -400;
             const bulletSpawnY = player.y - player.displayHeight / 2;
             let bullet = playerBullets.get();
@@ -1448,6 +1522,7 @@
 
         function gameOver() {
             if (!player.active) return;
+            if (musicEnabled) Tone.Transport.stop();
             updateCursorVisibility(true);
             player.setActive(false);
             this.physics.pause();
@@ -1488,11 +1563,13 @@
             updateCursorVisibility(isPaused);
             const pauseScreen = document.getElementById('pause-screen');
             if (isPaused) {
+                if (musicEnabled) Tone.Transport.pause();
                 this.scene.pause();
                 this.time.paused = true;
                 pauseScreen.style.visibility = 'visible';
                 pauseScreen.style.opacity = '1';
             } else {
+                if (musicEnabled) Tone.Transport.start();
                 this.scene.resume();
                 this.time.paused = false;
                 pauseScreen.style.visibility = 'hidden';
@@ -1600,17 +1677,26 @@
             }
         }
 
-        // NOVO: Adiciona os event listeners para a tela de configurações
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
             initializeGame();
 
             const startScreen = document.getElementById('start-screen');
             const settingsScreen = document.getElementById('settings-screen');
+            const pauseScreen = document.getElementById('pause-screen');
             
-            document.getElementById('settings-button').addEventListener('click', () => {
+            document.getElementById('settings-button-main').addEventListener('click', () => {
+                settingsReturnTo = 'start';
                 startScreen.style.visibility = 'hidden';
                 startScreen.style.opacity = '0';
+                settingsScreen.style.visibility = 'visible';
+                settingsScreen.style.opacity = '1';
+            });
+            
+            document.getElementById('settings-button-pause').addEventListener('click', () => {
+                settingsReturnTo = 'pause';
+                pauseScreen.style.visibility = 'hidden';
+                pauseScreen.style.opacity = '0';
                 settingsScreen.style.visibility = 'visible';
                 settingsScreen.style.opacity = '1';
             });
@@ -1618,16 +1704,34 @@
             document.getElementById('back-button').addEventListener('click', () => {
                 settingsScreen.style.visibility = 'hidden';
                 settingsScreen.style.opacity = '0';
-                startScreen.style.visibility = 'visible';
-                startScreen.style.opacity = '1';
+                if (settingsReturnTo === 'start') {
+                    startScreen.style.visibility = 'visible';
+                    startScreen.style.opacity = '1';
+                } else {
+                    pauseScreen.style.visibility = 'visible';
+                    pauseScreen.style.opacity = '1';
+                }
             });
 
             document.getElementById('performance-toggle').addEventListener('change', (event) => {
                 performanceMode = event.target.checked;
                 localStorage.setItem('spaceShooterPerformanceMode', JSON.stringify(performanceMode));
                 applyPerformanceSettings();
-                // Alerta para reiniciar o jogo para que as mudanças mais pesadas (como o renderer) tenham efeito
-                alert('As configurações de desempenho foram alteradas. É recomendado reiniciar o jogo para que todas as mudanças tenham efeito.');
+            });
+
+            document.getElementById('music-toggle').addEventListener('change', (event) => {
+                musicEnabled = event.target.checked;
+                localStorage.setItem('spaceShooterMusicEnabled', JSON.stringify(musicEnabled));
+                if (musicEnabled && isGameStarted && !isPaused) {
+                    Tone.Transport.start();
+                } else {
+                    Tone.Transport.pause();
+                }
+            });
+
+            document.getElementById('sfx-toggle').addEventListener('change', (event) => {
+                sfxEnabled = event.target.checked;
+                localStorage.setItem('spaceShooterSfxEnabled', JSON.stringify(sfxEnabled));
             });
         });
 
