@@ -14,7 +14,14 @@ const GAME_CONFIG = {
      * Afeta a vida e o dano dos inimigos e chefes. 
      * Ex: 1.5 significa um aumento de 50% por estágio.
      */
-    difficultyIncreasePerStage: 1.2,
+    difficultyIncreasePerStage: 1.3,
+    
+    // NOVO: Multiplicador de velocidade dos inimigos por estágio. Ex: 1.1 = +10% de velocidade
+    enemySpeedIncreasePerStage: 1.05,
+    
+    // NOVO: Redução no delay de spawn de inimigos por estágio (em milissegundos).
+    enemySpawnDelayReductionPerStage: 250,
+
 
     // --- Configurações do Jogador ---
 
@@ -28,7 +35,7 @@ const GAME_CONFIG = {
     
     /** Configurações de moedas dropadas por inimigos. */
     enemyCoinDrop: {
-        min: 1,
+        min: 3,
         max: 10,
         multiplierPerLevel: 1.1 // Multiplicador baseado no nível do inimigo
     },
@@ -42,7 +49,7 @@ const GAME_CONFIG = {
     },
     
     /** Chance de um meteoro especial (que dropa mais moedas) aparecer. */
-    coinMeteorChance: 0.10, // 10%
+    coinMeteorChance: 0.15, // 15%
 
     /** Quantidade de moedas dropadas pelo meteoro especial. */
     specialMeteorCoinDrop: 50,
@@ -50,7 +57,7 @@ const GAME_CONFIG = {
     // --- Configurações de Power-Ups ---
 
     /** Chance geral de um inimigo ou meteoro dropar um power-up. */
-    powerUpDropChance: 0.05, // 5%
+    powerUpDropChance: 0.1, // 10%
     
     /** * Distribuição da chance de cada tipo de power-up.
      * A soma de todos os valores deve ser 100.
@@ -73,7 +80,9 @@ const GAME_CONFIG = {
             damage: 300
         },
         /** Multiplicador de aumento de preço a cada compra. */
-        priceIncreaseMultiplier: 1.75
+        priceIncreaseMultiplier: 1.75,
+        /** NOVO: Custo fixo para o item de cura. */
+        healCost: 100
     },
     
     // --- Configurações Adicionais de Balanceamento (Opcional) ---
