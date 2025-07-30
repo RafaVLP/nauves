@@ -55,56 +55,189 @@
             box-shadow: none;
         }
 
-        /* Estilos para as telas de sobreposição (menus, game over) */
+        /* Estilos para os elementos da UI sobrepostos */
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Permite que os cliques passem para o canvas abaixo */
+            z-index: 10; /* Acima do canvas */
+        }
+
+        .ui-element {
+            position: absolute;
+            padding: 0.75rem 1rem; /* Aumentado para melhor leitura */
+            background-color: rgba(45, 55, 72, 0.85); /* Fundo semi-transparente mais robusto */
+            border-radius: 0.75rem;
+            backdrop-filter: blur(8px); /* Efeito de blur mais pronunciado */
+            font-weight: bold;
+            color: #e2e8f0;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Posições dos elementos da UI */
+        #score-damage-container { /* Novo container para pontos e dano */
+            bottom: 1.5rem;
+            left: 1.5rem;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.25rem;
+        }
+        #score-display, #damage-display {
+            position: static; /* Não usa posicionamento absoluto individualmente */
+            padding: 0;
+            background-color: transparent;
+            box-shadow: none;
+            backdrop-filter: none;
+            font-size: 1rem; /* Tamanho da fonte base */
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+        #damage-display {
+            font-size: 0.9rem; /* Dano ligeiramente menor */
+        }
+
+        #stage-display { /* Novo elemento para o estágio */
+            top: 1.5rem;
+            left: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        #health-shield-container {
+            top: 1.5rem;
+            right: 1.5rem;
+            flex-direction: column;
+            align-items: flex-end; /* Alinha barras à direita */
+            gap: 0.25rem;
+        }
+
+        #powerup-status-display {
+            bottom: 7rem; /* Aumentado para evitar sobreposição */
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.75rem 1rem;
+            font-size: 1rem; /* Ligeiramente menor para caber melhor */
+            white-space: nowrap; /* Evita quebra de linha */
+        }
+
+        /* Estilos para as barras de vida e escudo dentro da UI */
+        .bar-container {
+            width: 100px;
+            height: 15px;
+            background-color: #4a5568;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            border: 1px solid #a0aec0;
+            position: relative;
+        }
+
+        .bar {
+            height: 100%;
+            width: 100%;
+            transition: width 0.2s ease-out;
+        }
+
+        .health-bar-fill { background-color: #48bb78; }
+        .shield-bar-fill { background-color: #667eea; }
+
+        .bar-label {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 15px;
+            font-size: 0.7rem;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        /* Barra de vida do Boss (visível apenas durante a boss fight) */
+        #bossHealthBarContainer {
+            position: absolute;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 400px; /* Largura máxima para a barra do boss */
+            height: 25px;
+            background-color: rgba(45, 55, 72, 0.85); /* Fundo mais robusto */
+            border-radius: 0.75rem;
+            border: 2px solid #e53e3e;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            display: none;
+            overflow: hidden;
+            z-index: 15; /* Acima de outros elementos da UI */
+        }
+        #bossHealthBar {
+            height: 100%;
+            background-color: #e53e3e;
+            transition: width 0.2s ease-out;
+        }
+        #bossHealthLabel {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 25px;
+            font-size: 1.1rem;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+
+
+        /* Estilos para as telas de sobreposição (Game Over, Início, Configurações, Pausado) */
         .overlay-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.95);
+            background-color: rgba(0, 0, 0, 0.95); /* Fundo mais opaco para telas de menu */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            border-radius: 1.5rem; /* Cantos arredondados do wrapper */
             text-align: center;
-            font-size: 2.8rem;
+            font-size: 2.8rem; /* Fonte maior */
             color: #e2e8f0;
             z-index: 100;
-            padding: 1rem;
-            /* As telas de overlay devem ter o mesmo border-radius que o game-container */
-            border-radius: 1.5rem;
+            padding: 1rem; /* Padding para telas pequenas */
         }
 
         .overlay-screen h2 {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.5rem; /* Mais espaçamento */
             color: #fff;
-            font-size: 3.5rem;
+            font-size: 3.5rem; /* Título maior */
             text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
         }
 
         .overlay-screen p {
-            font-size: 1.8rem;
-            margin-bottom: 2.5rem;
+            font-size: 1.8rem; /* Parágrafo maior */
+            margin-bottom: 2.5rem; /* Mais espaçamento */
             color: #cbd5e0;
         }
 
         .overlay-screen button {
-            background: linear-gradient(to right, #48bb78, #38a169);
+            background: linear-gradient(to right, #48bb78, #38a169); /* Gradiente para botões */
             color: white;
-            padding: 1rem 2rem;
+            padding: 1rem 2rem; /* Padding maior */
             border: none;
-            border-radius: 0.75rem;
-            font-size: 1.8rem;
+            border-radius: 0.75rem; /* Cantos mais arredondados */
+            font-size: 1.8rem; /* Fonte maior */
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 0.75rem;
-            box-shadow: 0 5px 15px rgba(0, 128, 0, 0.4);
+            transition: all 0.3s ease; /* Transição suave */
+            margin: 0.75rem; /* Espaçamento entre botões */
+            box-shadow: 0 5px 15px rgba(0, 128, 0, 0.4); /* Sombra para botões */
+            pointer-events: auto; /* Permite interação com botões */
         }
 
         .overlay-screen button:hover {
             background: linear-gradient(to right, #38a169, #2f855a);
-            transform: translateY(-3px);
+            transform: translateY(-3px); /* Efeito de levantar */
             box-shadow: 0 8px 20px rgba(0, 128, 0, 0.6);
         }
         .overlay-screen button:active {
@@ -112,38 +245,71 @@
             box-shadow: 0 2px 5px rgba(0, 128, 0, 0.4);
         }
 
+        /* Estilos específicos para a tela de Game Over */
         #gameOverScreen {
-            color: #fc8181;
-            border: 3px solid #e53e3e;
-            box-shadow: 0 0 40px rgba(255, 0, 0, 0.9);
+            color: #fc8181; /* Vermelho claro */
+            border: 3px solid #e53e3e; /* Borda vermelha */
+            box-shadow: 0 0 40px rgba(255, 0, 0, 0.9); /* Sombra mais intensa */
         }
 
+        /* Estilos específicos para a tela de início */
         #startScreen {
-            box-shadow: 0 0 40px rgba(0, 255, 255, 0.9);
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.9); /* Sombra mais intensa */
         }
 
+        /* Estilos para a tela de configurações */
         #settingsScreen {
             box-shadow: 0 0 40px rgba(0, 255, 255, 0.9);
-            display: none;
+            display: none; /* Escondida por padrão */
         }
 
         #settingsScreen .setting-option {
             display: flex;
             align-items: center;
-            margin-bottom: 1.5rem;
-            font-size: 1.8rem;
+            margin-bottom: 1.5rem; /* Mais espaçamento */
+            font-size: 1.8rem; /* Fonte maior */
         }
 
         #settingsScreen .setting-option input[type="checkbox"] {
-            margin-right: 1.5rem;
-            width: 30px;
+            margin-right: 1.5rem; /* Mais espaçamento */
+            width: 30px; /* Checkbox maior */
             height: 30px;
             cursor: pointer;
-            accent-color: #48bb78;
+            accent-color: #48bb78; /* Cor do checkbox */
         }
 
+        /* Botão de Pausar para Mobile */
+        #pauseButton {
+            position: absolute;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: linear-gradient(to right, #667eea, #5a67d8); /* Gradiente azul */
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(102, 118, 234, 0.4);
+            pointer-events: auto; /* Permite interação */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px; /* Tamanho fixo para o botão */
+            height: 60px;
+        }
+        #pauseButton:hover {
+            background: linear-gradient(to right, #5a67d8, #4c51bf);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 118, 234, 0.6);
+        }
+        #pauseButton:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(102, 118, 234, 0.4);
+        }
+
+        /* Tela de Pausa */
         #pauseScreen {
-            display: none;
+            display: none; /* Escondida por padrão */
         }
 
         /* Responsividade para telas menores */
@@ -159,30 +325,135 @@
             .overlay-screen {
                 border-radius: 0; /* Remove bordas arredondadas nas telas de overlay em tela cheia */
             }
+            /* Make UI elements responsive */
+            .ui-element {
+                padding: 1.5vmin 2vmin; /* Responsive padding */
+                font-size: 2.5vmin; /* Responsive font size */
+                border-radius: 1vmin; /* Responsive border-radius */
+            }
+            #score-damage-container {
+                bottom: 2%; /* Percentage-based positioning */
+                left: 2%;
+            }
+            #score-display, #damage-display {
+                font-size: 2.2vmin; /* Slightly smaller responsive font size */
+            }
+            #stage-display {
+                top: 2%;
+                left: 2%;
+                font-size: 2.5vmin;
+            }
+            #health-shield-container {
+                top: 2%;
+                right: 2%;
+            }
+            #powerup-status-display {
+                bottom: 12%; /* Adjusted to be further from bottom */
+                font-size: 2.2vmin;
+            }
+            .bar-container {
+                width: 20vmin; /* Responsive width */
+                height: 3vmin; /* Responsive height */
+                border-radius: 0.75vmin; /* Responsive border-radius */
+            }
+            .bar-label {
+                font-size: 1.8vmin; /* Responsive font size */
+                line-height: 3vmin; /* Match bar height */
+            }
+            #bossHealthBarContainer {
+                max-width: 90vw; /* Max width relative to viewport */
+                height: 4vmin; /* Responsive height */
+                border-radius: 1vmin;
+            }
+            #bossHealthLabel {
+                font-size: 3vmin; /* Responsive font size */
+                line-height: 4vmin; /* Match bar height */
+            }
             .overlay-screen h2 {
-                font-size: 2rem;
+                font-size: 5vmin; /* Responsive title size */
             }
             .overlay-screen p {
-                font-size: 1rem;
+                font-size: 3vmin; /* Responsive paragraph size */
             }
             .overlay-screen button {
-                padding: 0.5rem 1rem;
-                font-size: 1rem;
-                margin: 0.4rem;
+                padding: 2vmin 4vmin; /* Responsive padding */
+                font-size: 3vmin; /* Responsive font size */
+                margin: 1vmin; /* Responsive margin */
+                border-radius: 1.5vmin; /* Responsive border-radius */
             }
             #settingsScreen .setting-option {
-                font-size: 1rem;
+                font-size: 3vmin;
             }
             #settingsScreen .setting-option input[type="checkbox"] {
-                width: 18px;
-                height: 18px;
+                width: 5vmin;
+                height: 5vmin;
+                margin-right: 2vmin;
+            }
+            #pauseButton {
+                width: 10vmin; /* Responsive width */
+                height: 10vmin; /* Responsive height */
+                font-size: 4vmin; /* Responsive font size for icon */
+                bottom: 2%;
+                right: 2%;
+                border-radius: 50%; /* Make it a circle */
             }
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <!-- As telas de menu ainda são HTML para facilitar a interação e estilo -->
+    <div class="game-wrapper">
+        <canvas id="gameCanvas" width="450" height="800"></canvas>
+
+        <div class="ui-overlay">
+            <!-- Pontos e Dano -->
+            <div id="score-damage-container" class="ui-element">
+                <div id="score-display">
+                    <span>Pontos: <span id="score">0</span></span>
+                </div>
+                <div id="damage-display">
+                    <span>Dano: <span id="playerDamage">1</span></span>
+                </div>
+            </div>
+
+            <!-- Estágio -->
+            <div id="stage-display" class="ui-element">
+                <span>Estágio: <span id="currentStageDisplay">1</span></span>
+            </div>
+
+            <!-- Vida e Escudo -->
+            <div id="health-shield-container" class="ui-element">
+                <div class="bar-container">
+                    <div id="healthBar" class="bar health-bar-fill"></div>
+                    <span class="bar-label">Vida: <span id="health">100</span></span>
+                </div>
+                <div class="bar-container">
+                    <div id="shieldBar" class="bar shield-bar-fill"></div>
+                    <span class="bar-label">Escudo: <span id="shield">0</span></span>
+                </div>
+            </div>
+
+            <!-- Status de Power-up -->
+            <div id="powerup-status-display" class="ui-element">
+                <span>Power-up: <span id="powerup-status">Nenhum</span></span>
+            </div>
+
+            <!-- Barra de vida do Boss (visível apenas durante a boss fight) -->
+            <div id="bossHealthBarContainer">
+                <div id="bossHealthBar" class="boss-health-bar"></div>
+                <span id="bossHealthLabel">BOSS: <span id="bossHealth"></span></span>
+            </div>
+
+            <!-- Botão de Pausar (apenas para mobile) -->
+            <button id="pauseButton" style="display: none;">
+                <!-- Ícone de pausa SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8">
+                    <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+
+
+        <!-- Tela de Início do Jogo -->
         <div id="startScreen" class="overlay-screen">
             <h2>Invasão Espacial</h2>
             <p>Mova a nave arrastando o dedo na tela para se desviar e atirar!</p>
@@ -192,6 +463,7 @@
             </div>
         </div>
 
+        <!-- Tela de Configurações -->
         <div id="settingsScreen" class="overlay-screen">
             <h2>Configurações</h2>
             <div class="setting-option">
@@ -205,44 +477,137 @@
             <button id="backToStartButton">Voltar</button>
         </div>
 
-        <div id="pauseScreen" class="overlay-screen">
+        <!-- Tela de Pausa -->
+        <div id="pauseScreen" class="overlay-screen" style="display: none;">
             <h2>Jogo Pausado</h2>
             <p>Pressione Espaço/Esc ou o botão de Pausa para continuar.</p>
             <button id="resumeButton">Continuar Jogo</button>
         </div>
 
-        <div id="gameOverScreen" class="overlay-screen">
+        <!-- Tela de Game Over -->
+        <div id="gameOverScreen" class="overlay-screen" style="display: none;">
             <h2>Fim de Jogo!</h2>
             <p>Sua pontuação final: <span id="finalScore">0</span></p>
             <button id="restartButton">Jogar Novamente</button>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script>
-        // Configurações do jogo (ainda globais para acesso pelos listeners HTML)
+        // Obtenha o canvas e o contexto 2D
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Elementos da UI
+        const scoreDisplay = document.getElementById('score');
+        const playerDamageDisplay = document.getElementById('playerDamage'); // Novo elemento para dano do jogador
+        const healthDisplay = document.getElementById('health');
+        const healthBar = document.getElementById('healthBar');
+        const shieldDisplay = document.getElementById('shield');
+        const shieldBar = document.getElementById('shieldBar');
+        const powerupStatusDisplay = document.getElementById('powerup-status');
+        const bossHealthBarContainer = document.getElementById('bossHealthBarContainer');
+        const bossHealthBar = document.getElementById('bossHealthBar');
+        const bossHealthDisplay = document.getElementById('bossHealth');
+        const currentStageDisplay = document.getElementById('currentStageDisplay'); // Novo elemento para estágio
+
+        // Telas de sobreposição
+        const startScreen = document.getElementById('startScreen');
+        const settingsScreen = document.getElementById('settingsScreen');
+        const pauseScreen = document.getElementById('pauseScreen'); // Nova tela de pausa
+        const gameOverScreen = document.getElementById('gameOverScreen');
+
+        // Botões
+        const startButton = document.getElementById('startButton');
+        const settingsButton = document.getElementById('settingsButton');
+        const backToStartButton = document.getElementById('backToStartButton');
+        const toggleShotSounds = document.getElementById('toggleShotSounds');
+        const toggleBackgroundMusic = document.getElementById('toggleBackgroundMusic');
+        const pauseButton = document.getElementById('pauseButton'); // Novo botão de pausa
+        const resumeButton = document.getElementById('resumeButton'); // Novo botão de continuar
+        const restartButton = document.getElementById('restartButton');
+
+        // Variáveis do jogo
+        let player;
+        let bullets = [];
+        let enemies = [];
+        let enemyBullets = [];
+        let powerUps = [];
+        let particles = [];
+        let score = 0;
+        let gameRunning = false;
+        let isPaused = false; // Estado de pausa do jogo
+        let activePowerUps = {}; // Armazena power-ups ativos e seus timers
+        let spawnEnemyInterval;
+        let enemySpeedMultiplier = 1;
+        let stars = [];
+        let currentEnemyLevel = 1;
+        let bossActive = false;
+        let boss = null;
+        let backgroundMusic;
+        let currentStage = 1;
+
+        // Configurações do jogo
         const gameSettings = {
             shotSoundsEnabled: true,
             backgroundMusicEnabled: true
         };
 
-        // Sons (Tone.js) - Inicialização fora da cena Phaser para controle global
+        // Detecção de dispositivo (mobile vs. desktop)
+        const isMobile = () => {
+            return ('ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0);
+        };
+
+        const NUM_STARS = 200;
+        const STAR_SPEED = 0.5;
+
+        // Constantes do jogo
+        const PLAYER_INITIAL_WIDTH = 60;
+        const PLAYER_INITIAL_HEIGHT = 60;
+        const PLAYER_BULLET_SPEED = 7;
+        const PLAYER_BASE_BULLET_DAMAGE = 1;
+        const ENEMY_BASE_SPEED = 1;
+        const ENEMY_BASE_DAMAGE = 10;
+        const ENEMY_BULLET_SPEED = 3;
+        const ENEMY_SPAWN_INTERVAL = 1500;
+        const PLAYER_FIRE_RATE = 200;
+        const ENEMY_FIRE_RATE = 1500;
+        const POWER_UP_DURATION = 7000;
+        const MAX_SHIELD = 100;
+        const POWER_UP_DROP_CHANCE = 0.10;
+
+        const SCORE_PER_ENEMY_LEVEL_UP = 30;
+        const ENEMY_HEALTH_PER_LEVEL = 1;
+        const ENEMY_STRENGTH_INCREASE_PER_LEVEL = 0.1;
+
+        const BOSS_SCORE_THRESHOLD = 100;
+        const BOSS_HEALTH_MULTIPLIER = 10;
+        const BOSS_DAMAGE_MULTIPLIER = 1.5;
+        const BOSS_SPEED_MULTIPLIER = 0.8;
+        const BOSS_ENTRY_SPEED = 2;
+
+        const ENEMY_COLLISION_DAMAGE = 20;
+        const BOSS_COLLISION_DAMAGE = 30;
+
+        const STAGE_DIFFICULTY_INCREASE = 0.20;
+
+        const BOSS_RAGE_THRESHOLD = 0.35;
+        const BOSS_RAGE_FIRE_RATE_MULTIPLIER = 0.7;
+        const BOSS_RAGE_DAMAGE_MULTIPLIER = 1.3;
+        const BOSS_RAGE_SPEED_MULTIPLIER = 1.3;
+
+        const ENEMY_COLORS = [
+            '#FF0000', '#FF4500', '#FF8C00', '#FFD700', '#ADFF2F',
+            '#00FF00', '#00FFFF', '#00BFFF', '#8A2BE2', '#FF00FF',
+        ];
+
+        // Sons
         let playerShootSound, enemyShootSound, hitSound, powerUpSound,
             gameOverSound, bossHitSound, bossDefeatSound, explosionSound;
-        let backgroundMusic;
 
-        // Cooldowns para sons para evitar Tone.js "Start time must be strictly greater" errors
-        let lastHitSoundTime = 0;
-        const hitSoundCooldown = 0.1; // 100ms
-
-        let lastExplosionSoundTime = 0;
-        const explosionSoundCooldown = 0.1; // 100ms
-
-
-        // Inicializa todos os objetos de som do Tone.js
         function initSounds() {
             playerShootSound = new Tone.Synth().toDestination(); playerShootSound.envelope.release = 0.05;
-            // Usando Tone.PolySynth para permitir múltiplos tiros de inimigo simultâneos
-            enemyShootSound = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "square" }, envelope: { release: 0.01 } }).toDestination();
+            enemyShootSound = new Tone.Synth({ oscillator: { type: "square" }, envelope: { release: 0.1 } }).toDestination();
             hitSound = new Tone.NoiseSynth({ envelope: { release: 0.1 } }).toDestination();
             powerUpSound = new Tone.PolySynth(Tone.Synth).toDestination();
             gameOverSound = new Tone.Synth().toDestination();
@@ -260,1205 +625,615 @@
         }
 
         function playPlayerShootSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) playerShootSound.triggerAttackRelease("C5", "8n"); }
-        // Agora usa triggerAttackRelease do PolySynth para o tiro do inimigo
         function playEnemyShootSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) enemyShootSound.triggerAttackRelease("C3", "8n"); }
-        function playHitSound() {
-            if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) {
-                const now = Tone.context.currentTime;
-                if (now - lastHitSoundTime > hitSoundCooldown) {
-                    hitSound.triggerAttackRelease("16n");
-                    lastHitSoundTime = now;
-                }
-            }
-        }
+        function playHitSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) hitSound.triggerAttackRelease("16n"); }
         function playPowerUpSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) powerUpSound.triggerAttackRelease("C4", "8n"); }
         function playGameOverSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) { gameOverSound.triggerAttackRelease("C3", "4n"); gameOverSound.triggerAttackRelease("G2", "4n", "+0.5"); } }
         function playBossHitSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) bossHitSound.triggerAttackRelease("8n"); }
         function playBossDefeatSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) bossDefeatSound.triggerAttackRelease(["C4", "F4", "A4", "C5"], "2n"); }
-        function playExplosionSound() {
-            if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) {
-                const now = Tone.context.currentTime;
-                if (now - lastExplosionSoundTime > explosionSoundCooldown) {
-                    explosionSound.triggerAttackRelease("16n");
-                    lastExplosionSoundTime = now;
-                }
+        function playExplosionSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) explosionSound.triggerAttackRelease("16n"); }
+
+        class GameObject {
+            constructor(x, y, width, height, color) {
+                this.x = x; this.y = y; this.width = width; this.height = height; this.color = color;
+            }
+            draw() { ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.width, this.height); }
+        }
+
+        class Particle extends GameObject {
+            constructor(x, y, size, color, speedX, speedY, life) {
+                super(x, y, size, size, color);
+                this.speedX = speedX; this.speedY = speedY; this.life = life; this.maxLife = life;
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY; this.life--;
+                this.opacity = this.life / this.maxLife;
+            }
+            draw() {
+                ctx.save(); ctx.globalAlpha = this.opacity; ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height); ctx.restore();
             }
         }
 
-        // --- Variáveis de controle de jogo (globais para a cena Phaser) ---
-        // MOVIDAS PARA FORA DO CREATE PARA PERSISTIREM ENTRE ESTÁGIOS
-        let score = 0;
-        let currentStage = 1;
-        let player; // Player ainda precisa ser global para acesso em listeners HTML
-        let isPaused = false;
-        let bossActive = false;
-        let boss = null; // Agora 'boss' será um objeto com 'phaserObject' e dados
-        let spawnEnemyEvent; // Evento para spawn de inimigos
-        let activePowerUps = {}; // Para gerenciar power-ups acumulativos
-        
-        // --- UI Text Objects ---
-        let scoreText;
-        let damageText;
-        let healthText;
-        let shieldText;
-        let stageText;
-        let powerUpStatusText;
-        let bossHealthBarBackground; // Referência ao retângulo de fundo da barra do boss
-        let bossHealthBarFill;      // Referência ao preenchimento da barra do boss
-        let bossHealthText;         // Referência ao texto da vida do boss
-
-        // --- Phaser Game Configuration (AGORA GLOBAL) ---
-        const config = {
-            type: Phaser.AUTO,
-            width: 450, // Largura para formato mobile
-            height: 800, // Altura para formato mobile
-            parent: 'game-container', // ID do div onde o canvas será injetado
-            physics: {
-                default: 'arcade',
-                arcade: {
-                    gravity: { y: 0 },
-                    debug: true // Mude para true para ver os hitboxes - MUDAR PARA FALSE NO PROD
+        class Player extends GameObject {
+            constructor(x, y) {
+                super(x, y, PLAYER_INITIAL_WIDTH, PLAYER_INITIAL_HEIGHT, '#00FFFF');
+                this.health = 100; this.shield = 0; this.lastShotTime = 0;
+                this.fireRate = PLAYER_FIRE_RATE; this.bulletDamage = PLAYER_BASE_BULLET_DAMAGE;
+                this.rapidFireActive = false; this.shieldActive = false;
+            }
+            draw() {
+                ctx.fillStyle = this.color; ctx.beginPath();
+                ctx.moveTo(this.x + this.width / 2, this.y);
+                ctx.lineTo(this.x, this.y + this.height);
+                ctx.lineTo(this.x + this.width, this.y + this.height);
+                ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#ADD8E6'; ctx.beginPath();
+                ctx.arc(this.x + this.width / 2, this.y + this.height / 3, this.width / 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#00BFFF';
+                ctx.fillRect(this.x - 5, this.y + this.height / 2, 5, this.height / 2);
+                ctx.fillRect(this.x + this.width, this.y + this.height / 2, 5, this.height / 2);
+            }
+            shoot() {
+                const currentTime = Date.now();
+                const actualFireRate = this.rapidFireActive ? PLAYER_FIRE_RATE / 2 : PLAYER_FIRE_RATE;
+                if (currentTime - this.lastShotTime > actualFireRate) {
+                    bullets.push(new Bullet(this.x + this.width / 2 - 2, this.y, 4, 10, '#FFFF00', -PLAYER_BULLET_SPEED, this.bulletDamage));
+                    this.lastShotTime = currentTime; playPlayerShootSound();
                 }
-            },
-            scene: {
-                key: 'default', // Adiciona uma chave para a cena
-                init: init, // Adiciona o método init para inicializar as constantes da cena
-                preload: preload,
-                create: create,
-                update: update
-            },
-            scale: {
-                mode: Phaser.Scale.FIT, // Ajusta o jogo para caber na tela
-                autoCenter: Phaser.Scale.CENTER_BOTH // Centraliza o jogo
-            },
-            dom: {
-                createContainer: true // Permite que o Phaser crie o container para o canvas
             }
-        };
-
-        let game; // A instância do jogo Phaser
-
-        // --- Game Scene Functions ---
-
-        // Método init da cena: Usado para inicializar propriedades da cena, incluindo constantes
-        function init() {
-            // Constantes do jogo (definidas como propriedades da cena)
-            this.NUM_STARS = 200;
-            this.STAR_SPEED = 0.5;
-            // O usuário solicitou que o tamanho da hitbox seja 800x800 e offset 100x100
-            // No entanto, o displaySize do sprite do jogador será mantido em 69x69 para visualização.
-            // Para que o sprite visual seja 69x69, mas a hitbox seja 800x800,
-            // o displaySize deve ser ajustado para o tamanho da imagem original se ela for 1024x1024,
-            // e então a hitbox ajustada.
-            // Se a imagem player.png é 1024x1024, setDisplaySize(69, 69) vai escalá-la.
-            // A hitbox será definida de acordo com a solicitação do usuário.
-            this.PLAYER_INITIAL_WIDTH = 60 * 1.15; // Mantém o display visual em 69
-            this.PLAYER_INITIAL_HEIGHT = 60 * 1.15; // Mantém o display visual em 69
-
-            this.PLAYER_BULLET_SPEED = 400; // Velocidade em pixels/segundo
-            this.PLAYER_BASE_BULLET_DAMAGE = 1;
-            this.ENEMY_BASE_SPEED = 50;
-            this.ENEMY_BASE_DAMAGE = 10;
-            this.ENEMY_BULLET_SPEED = 200;
-            this.ENEMY_SPAWN_INTERVAL = 1500;
-            this.PLAYER_FIRE_RATE = 200;
-            this.ENEMY_FIRE_RATE = 1500; // Base para cálculo da taxa de tiro do inimigo
-            this.POWER_UP_DURATION = 7000;
-            this.MAX_SHIELD = 100;
-            this.POWER_UP_DROP_CHANCE = 0.10;
-            this.SCORE_PER_ENEMY_LEVEL_UP = 30;
-            this.ENEMY_HEALTH_PER_LEVEL = 1;
-            this.ENEMY_STRENGTH_INCREASE_PER_LEVEL = 0.1;
-            this.ENEMY_COLLISION_DAMAGE = 20;
-            
-            // Novas constantes do Boss
-            this.BOSS_SCORE_THRESHOLD = 20; // Pontuação para o boss aparecer
-            this.BOSS_INITIAL_HEALTH = 200; // Vida inicial do boss
-            this.BOSS_DAMAGE_MULTIPLIER = 1.5; // Dano base do boss
-            this.BOSS_SPEED_MULTIPLIER = 1.3; // Velocidade base do boss
-            this.BOSS_ENTRY_SPEED = 100; // Velocidade de entrada do boss
-            this.BOSS_COLLISION_DAMAGE = 30; // Dano de colisão do boss
-            this.STAGE_DIFFICULTY_INCREASE = 0.20; // Aumento de dificuldade por estágio
-            this.BOSS_RAGE_THRESHOLD = 0.35; // % de vida para entrar em rage
-            this.BOSS_RAGE_FIRE_RATE_MULTIPLIER = 0.7; // Multiplicador de fire rate em rage (menor = mais rápido)
-            this.BOSS_RAGE_DAMAGE_MULTIPLIER = 1.3; // Multiplicador de dano em rage
-            this.BOSS_RAGE_SPEED_MULTIPLIER = 1.3; // Multiplicador de velocidade em rage (30% mais rápido)
-
-            this.ENEMY_COLORS = [
-                0xFF0000, 0xFF4500, 0xFF8C00, 0xFFD700, 0xADFF2F,
-                0x00FF00, 0x00FFFF, 0x00BFFF, 0x8A2BE2, 0xFF00FF,
-            ];
-
-            // currentEnemyLevel e enemySpeedMultiplier são calculados com base no score atual
-            // e são usados para configurar a dificuldade dos inimigos para o estágio atual.
-            this.currentEnemyLevel = Math.floor(score / this.SCORE_PER_ENEMY_LEVEL_UP) + 1;
-            this.enemySpeedMultiplier = 1 + (this.currentEnemyLevel - 1) * this.ENEMY_STRENGTH_INCREASE_PER_LEVEL;
-            if (this.enemySpeedMultiplier > 5) { // Limita o multiplicador para não ficar insano
-                this.enemySpeedMultiplier = 5;
-            }
-            console.log(`Init: currentEnemyLevel=${this.currentEnemyLevel}, enemySpeedMultiplier=${this.enemySpeedMultiplier}`);
-        }
-
-        function preload() {
-            this.load.image('player', 'player.png'); // Carrega o sprite do jogador
-            this.load.image('boss1', 'boss1.png'); // Carrega o sprite do boss
-        }
-
-        // Define a função de atualização do modo raiva do boss no protótipo da cena
-        Phaser.Scene.prototype.bossUpdateRageMode = function(bossInstanceData, sceneRef) {
-            // bossInstanceData é o objeto de dados do boss (boss.health, boss.maxHealth, etc.)
-            if (bossInstanceData && !bossInstanceData.isRaging && Number(bossInstanceData.health) / Number(bossInstanceData.maxHealth) <= sceneRef.BOSS_RAGE_THRESHOLD) {
-                bossInstanceData.isRaging = true;
-                bossInstanceData.fireRate *= sceneRef.BOSS_RAGE_FIRE_RATE_MULTIPLIER;
-                bossInstanceData.damage *= sceneRef.BOSS_RAGE_DAMAGE_MULTIPLIER;
-                // Aumenta a velocidade de movimento do boss em rage
-                bossInstanceData.speedX *= sceneRef.BOSS_RAGE_SPEED_MULTIPLIER;
-                bossInstanceData.speedY *= sceneRef.BOSS_RAGE_SPEED_MULTIPLIER;
-                console.log('BOSS ENRAGED! New damage:', bossInstanceData.damage, 'New speedX:', bossInstanceData.speedX);
-            }
-        };
-
-        function create() {
-            // Variáveis de controle de jogo que DEVEM ser resetadas apenas no Game Over ou início do jogo
-            // score e currentStage NÃO são resetados aqui, pois persistem entre estágios.
-            isPaused = false;
-            bossActive = false;
-            boss = null; // Garante que o boss seja null no início de cada cena
-            if (spawnEnemyEvent) {
-                spawnEnemyEvent.destroy(); // Garante que o evento anterior seja limpo
-                spawnEnemyEvent = null;
-            }
-            activePowerUps = {};
-            
-            this.cameras.main.setBackgroundColor('#0a0a2a'); // Fundo do espaço
-
-            // Adicionar estrelas (agora usando this.NUM_STARS)
-            this.stars = [];
-            for (let i = 0; i < this.NUM_STARS; i++) {
-                this.stars.push(this.add.circle(Phaser.Math.Between(0, config.width), Phaser.Math.Between(0, config.height), Phaser.Math.Between(1, 3), 0xFFFFFF, Phaser.Math.Between(50, 100) / 100));
-            }
-
-            // --- Grupos de objetos com física (AGORA PROPRIEDADES DA CENA) ---
-            this.bullets = this.physics.add.group();
-            this.enemies = this.physics.add.group();
-            this.enemyBullets = this.physics.add.group();
-            this.powerUps = this.physics.add.group();
-
-            console.log("Groups initialized. Bullets:", this.bullets.children.entries.length, "Enemies:", this.enemies.children.entries.length);
-
-
-            // --- Player ---
-            // Sempre cria um novo player ao iniciar a cena para evitar duplicação e garantir estado limpo
-            if (player) { // Se um player global existir de uma cena anterior, destrua-o
-                player.destroy();
-            }
-            player = this.physics.add.image(config.width / 2, config.height - 100, 'player')
-                .setOrigin(0.5, 0.5)
-                .setDisplaySize(this.PLAYER_INITIAL_WIDTH, this.PLAYER_INITIAL_HEIGHT) // Mantém o display visual em 69x69
-                .setCollideWorldBounds(true);
-
-            // Garante que não haja tint ou blend mode aplicado ao player
-            player.setTint(); // Remove qualquer tint
-            player.setBlendMode(Phaser.BlendModes.NORMAL); // Reseta o blend mode
-
-            // Ajusta o hitbox do player para o tamanho especificado pelo usuário
-            player.body.setSize(800, 800); // Conforme a solicitação do usuário
-            player.body.setOffset(100, 100); // Conforme a solicitação do usuário
-
-            // LOG para verificar o tamanho de exibição do player
-            console.log(`Player display size after creation: ${player.displayWidth}x${player.displayHeight}`);
-            console.log(`Player hitbox size: ${player.body.width}x${player.body.height}, offset: ${player.body.offset.x}, ${player.body.offset.y}`);
-
-
-            // Adicionar propriedades customizadas ao player (resetar para o início do estágio)
-            player.health = 100;
-            player.shield = 0;
-            player.bulletDamage = this.PLAYER_BASE_BULLET_DAMAGE;
-            player.rapidFireActive = false;
-            player.shieldActive = false;
-            player.lastShotTime = 0;
-
-            // --- UI Text Objects (Phaser) ---
-            const uiTextStyle = { fontSize: '16px', fill: '#e2e8f0', stroke: '#000', strokeThickness: 2, fontStyle: 'bold' };
-            const barLabelStyle = { fontSize: '12px', fill: '#fff', stroke: '#000', strokeThickness: 1 };
-
-            // Score e Dano (canto inferior esquerdo)
-            scoreText = this.add.text(20, config.height - 40, `Pontos: ${score}`, uiTextStyle).setOrigin(0, 0.5).setDepth(10);
-            damageText = this.add.text(20, config.height - 20, `Dano: ${player.bulletDamage}`, uiTextStyle).setOrigin(0, 0.5).setDepth(10);
-
-            // Estágio (canto superior esquerdo)
-            stageText = this.add.text(20, 40, `Estágio: ${currentStage}`, uiTextStyle).setOrigin(0, 0.5).setDepth(10);
-
-            // Health e Shield (canto superior direito)
-            // Barras de fundo
-            this.healthBarBackground = this.add.rectangle(config.width - 70, 40, 100, 15, 0x4a5568).setOrigin(0.5, 0.5).setDepth(10); // Health background
-            this.shieldBarBackground = this.add.rectangle(config.width - 70, 60, 100, 15, 0x4a5568).setOrigin(0.5, 0.5).setDepth(10); // Shield background
-
-            // Barras de preenchimento (serão atualizadas)
-            this.healthBarFill = this.add.rectangle(config.width - 70, 40, 100, 15, 0x48bb78).setOrigin(0.5, 0.5).setDepth(11);
-            this.shieldBarFill = this.add.rectangle(config.width - 70, 60, 100, 15, 0x667eea).setOrigin(0.5, 0.5).setDepth(11);
-
-            healthText = this.add.text(config.width - 70, 40, `Vida: ${player.health}`, barLabelStyle).setOrigin(0.5, 0.5).setDepth(12);
-            shieldText = this.add.text(config.width - 70, 60, `Escudo: ${player.shield}`, barLabelStyle).setOrigin(0.5, 0.5).setDepth(12);
-
-            // Power-up Status (centro inferior)
-            powerUpStatusText = this.add.text(config.width / 2, config.height - 100, `Power-up: Nenhum`, uiTextStyle).setOrigin(0.5, 0.5).setDepth(10);
-
-            // Boss Health Bar (topo central, inicialmente invisível)
-            bossHealthBarBackground = this.add.rectangle(config.width / 2, 20, 300, 25, 0x4a5568).setOrigin(0.5, 0.5).setDepth(10).setVisible(false);
-            bossHealthBarFill = this.add.rectangle(config.width / 2, 20, 300, 25, 0xe53e3e).setOrigin(0.5, 0.5).setDepth(11).setVisible(false);
-            bossHealthText = this.add.text(config.width / 2, 20, '', uiTextStyle).setOrigin(0.5, 0.5).setDepth(12).setVisible(false);
-
-
-            // --- Controles ---
-            if (isMobile()) {
-                // Controles de toque
-                this.input.on('pointermove', function (pointer) {
-                    if (isPaused) return; // Não move se estiver pausado
-                    player.x = pointer.x;
-                    player.y = pointer.y;
-                }, this);
-
-                // Botão de pausa para mobile (Phaser Graphics Object)
-                this.pauseButton = this.add.graphics({ fillStyle: { color: 0x667eea } }).setDepth(100).setInteractive(new Phaser.Geom.Circle(0, 0, 30), Phaser.Geom.Circle.Contains);
-                this.pauseButton.fillCircle(config.width - 45, config.height - 45, 30);
-                this.pauseButton.lineStyle(4, 0xFFFFFF); // Linha para o ícone
-                this.pauseButton.strokeRect(config.width - 55, config.height - 55, 10, 20); // Primeira barra
-                this.pauseButton.strokeRect(config.width - 35, config.height - 55, 10, 20); // Segunda barra
-                this.pauseButton.on('pointerdown', togglePause, this);
-            } else {
-                // Controles de mouse para desktop
-                this.input.on('pointermove', function (pointer) {
-                    if (isPaused) return; // Não move se estiver pausado
-                    player.x = pointer.x;
-                    player.y = pointer.y;
-                }, this);
-
-                // Teclas de pausa para desktop
-                this.input.keyboard.on('keydown-SPACE', togglePause, this);
-                this.input.keyboard.on('keydown-ESC', togglePause, this);
-            }
-
-            // --- Colisões (agora chamando métodos da cena e usando as novas referências) ---
-            this.physics.add.overlap(this.bullets, this.enemies, this.hitEnemy, null, this);
-            this.physics.add.overlap(player, this.enemies, this.hitPlayerByEnemy, null, this);
-            this.physics.add.overlap(player, this.enemyBullets, this.hitPlayerByEnemyBullet, null, this);
-            // Colisões com o boss serão adicionadas quando o boss for criado em startBossFight
-            this.physics.add.overlap(player, this.powerUps, this.collectPowerUp, null, this);
-
-            // Inicia o spawn de inimigos
-            spawnEnemyEvent = this.time.addEvent({
-                delay: this.ENEMY_SPAWN_INTERVAL, // Usando this.ENEMY_SPAWN_INTERVAL
-                callback: this.spawnEnemy, // Usando this.spawnEnemy
-                callbackScope: this,
-                loop: true
-            });
-            
-            // Esconde as telas de menu HTML
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('settingsScreen').style.display = 'none';
-            document.getElementById('pauseScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'none';
-
-            // Atualiza a UI inicial do jogador
-            this.updatePlayerHealthDisplay(player.health, 100); // Passa max health
-            this.updatePlayerShieldDisplay(player.shield, this.MAX_SHIELD); // Passa max shield
-            this.updatePlayerPowerUpStatusDisplay(player.rapidFireActive, player.shieldActive, player.bulletDamage);
-        }
-
-        function update() {
-            if (isPaused) return;
-
-            // Atualiza estrelas
-            this.stars.forEach(star => {
-                star.y += this.STAR_SPEED; // Usando this.STAR_SPEED
-                if (star.y > config.height) {
-                    star.y = 0;
-                    star.x = Phaser.Math.Between(0, config.width);
+            takeDamage(amount) {
+                let remainingDamage = amount;
+                if (this.shield > 0) {
+                    const damageToShield = Math.min(remainingDamage, this.shield);
+                    this.shield -= damageToShield; remainingDamage -= damageToShield;
+                    this.updateShieldDisplay();
                 }
-            });
-
-            // Lógica de tiro do jogador
-            const currentTime = this.time.now;
-            const actualFireRate = player.rapidFireActive ? this.PLAYER_FIRE_RATE / 2 : this.PLAYER_FIRE_RATE; // Usando this.PLAYER_FIRE_RATE
-            if (currentTime - player.lastShotTime > actualFireRate) {
-                this.spawnPlayerBullet(); // Chama a função de spawn de tiro do jogador
-                player.lastShotTime = currentTime;
-            }
-
-            // Lógica de spawn de boss
-            // O boss só deve aparecer uma vez por estágio, e apenas quando a pontuação atinge o limite E o boss não está ativo.
-            if (score >= this.BOSS_SCORE_THRESHOLD && !bossActive && boss === null) {
-                console.log('Spawning boss: Score reached threshold and boss not active.'); // LOG
-                this.startBossFight();
-            }
-
-            // Lógica do Boss
-            if (bossActive && boss && boss.phaserObject) { // Verifica se boss e phaserObject existem
-                if (boss.state === 'entering') {
-                    boss.phaserObject.y += this.BOSS_ENTRY_SPEED * this.game.loop.delta / 1000; // Usando this.BOSS_ENTRY_SPEED
-                    if (boss.phaserObject.y >= 100) { // Posição final de entrada
-                        boss.phaserObject.y = 100;
-                        boss.state = 'fighting';
-                        console.log('Boss finished entering, state changed to fighting.'); // LOG
-                        // Inicia o movimento oscilatório do boss
-                        boss.currentMovementDirectionX = 1; // 1 para direita, -1 para esquerda
-                        boss.currentMovementDirectionY = 1; // 1 para baixo, -1 para cima
-                        boss.movementRangeX = config.width * 0.35 / 2; // Metade da área de 35%
-                        boss.movementRangeY = config.height * 0.35 / 2; // Metade da área de 35%
-                        boss.initialX = boss.phaserObject.x;
-                        boss.initialY = boss.phaserObject.y;
-                    }
-                } else if (boss.state === 'fighting') {
-                    // Movimento oscilatório no eixo X
-                    boss.phaserObject.x += boss.speedX * boss.currentMovementDirectionX * this.game.loop.delta / 1000;
-                    if (boss.phaserObject.x > boss.initialX + boss.movementRangeX || boss.phaserObject.x < boss.initialX - boss.movementRangeX) {
-                        boss.currentMovementDirectionX *= -1;
-                    }
-
-                    // Movimento oscilatório no eixo Y
-                    boss.phaserObject.y += boss.speedY * boss.currentMovementDirectionY * this.game.loop.delta / 1000;
-                    if (boss.phaserObject.y > boss.initialY + boss.movementRangeY || boss.phaserObject.y < boss.initialY - boss.movementRangeY) {
-                        boss.currentMovementDirectionY *= -1;
-                    }
+                if (remainingDamage > 0) {
+                    this.health -= remainingDamage; if (this.health < 0) this.health = 0;
+                    this.updateHealthDisplay();
                 }
-                // Chama o método shoot do boss
-                if (boss.phaserObject.shoot) { // Verifica se o método existe no phaserObject
-                    boss.phaserObject.shoot(this, boss); // Passa a cena e o objeto de dados do boss
-                }
-                this.bossUpdateRageMode(boss, this); // Passa o objeto de dados do boss e a cena
-            }
-
-            // Remover inimigos e tiros que saem da tela
-            this.enemies.children.each(function(enemy) {
-                if (enemy.y > config.height + 50) { // Um pouco fora da tela
-                    enemy.destroy();
-                }
-            });
-            this.bullets.children.each(function(bullet) {
-                if (bullet.y < -50) { // Um pouco fora da tela
-                    bullet.destroy();
-                }
-            });
-            this.enemyBullets.children.each(function(bullet) {
-                if (bullet.y > config.height + 50) { // Um pouco fora da tela
-                    bullet.destroy();
-                }
-            });
-            this.powerUps.children.each(function(powerUp) {
-                if (powerUp.y > config.height + 50) {
-                    powerUp.destroy();
-                }
-            });
-
-            // Atualiza UI (já feito nas funções auxiliares, mas aqui para score e stage)
-            scoreText.setText(`Pontos: ${score}`);
-            stageText.setText(`Estágio: ${currentStage}`);
-        }
-
-        // --- Game Logic Functions (agora métodos da cena) ---
-
-        // Função auxiliar para spawn de tiro do jogador
-        function spawnPlayerBullet() {
-            // Cria um retângulo para o tiro
-            const bulletGraphic = this.add.rectangle(player.x, player.y - player.displayHeight / 2, 4, 10, 0xFFFF00); // Amarelo
-            // Habilita a física para o objeto gráfico e o adiciona ao grupo
-            this.physics.world.enable(bulletGraphic);
-            this.bullets.add(bulletGraphic); // Adiciona ao grupo de física
-            
-            // Define explicitamente o tamanho e o offset do corpo de física do tiro
-            bulletGraphic.body.setSize(4, 10);
-            bulletGraphic.body.setOffset(-2, -5); // Offset para centralizar o hitbox no gráfico (origem do gráfico é o centro)
-            bulletGraphic.body.enable = true; // Garante que o corpo de física esteja ativo
-            bulletGraphic.body.active = true; // Garante que o corpo de física esteja ativo
-
-            bulletGraphic.body.setVelocityY(-this.PLAYER_BULLET_SPEED); // Usando this.PLAYER_BULLET_SPEED
-            bulletGraphic.damage = Number(player.bulletDamage); // Garante que o dano seja um número
-            playPlayerShootSound();
-        }
-        // Atribui a função ao contexto da cena
-        Phaser.Scene.prototype.spawnPlayerBullet = spawnPlayerBullet;
-
-
-        // Função auxiliar para spawn de inimigo
-        function spawnEnemy() {
-            if (bossActive || isPaused) return; // Não spawna inimigos se o boss estiver ativo ou pausado
-            const x = Phaser.Math.Between(50, config.width - 50);
-            const y = -50; // Posição inicial Y para spawn acima da tela
-
-            // Cria um Container para o inimigo. Suas coordenadas (x,y) serão o centro do inimigo.
-            const enemyContainer = this.add.container(x, y);
-
-            const enemyColor = this.ENEMY_COLORS[Math.min(this.currentEnemyLevel - 1, this.ENEMY_COLORS.length - 1)];
-            
-            // Cria o corpo visual principal do inimigo. Posiciona em (0,0) relativo ao container,
-            // e define sua origem no centro (0.5, 0.5) para que seu centro visual esteja em (0,0) dentro do container.
-            const enemyBodyGraphic = this.add.rectangle(0, 0, 50, 50, enemyColor); 
-            enemyBodyGraphic.setOrigin(0.5, 0.5);
-
-            // Adiciona detalhes visuais (cabine e asas) relativos ao centro do container (0,0)
-            const cabin = this.add.rectangle(0, -10, 30, 30, 0x8B0000); 
-            cabin.setOrigin(0.5, 0.5);
-            const wingLeft = this.add.rectangle(-35, -10, 10, 30, 0xFF4500); 
-            wingLeft.setOrigin(0.5, 0.5);
-            const wingRight = this.add.rectangle(35, -10, 10, 30, 0xFF4500); 
-            wingRight.setOrigin(0.5, 0.5);
-
-            // Adiciona todas as partes visuais ao container
-            enemyContainer.add([enemyBodyGraphic, cabin, wingLeft, wingRight]);
-
-            // Habilita a física para o CONTAINER
-            this.physics.world.enable(enemyContainer);
-            this.enemies.add(enemyContainer);
-
-            // Define o tamanho do hitbox para 50x50 (o corpo principal)
-            enemyContainer.body.setSize(50, 50);
-            // Offset para centralizar o hitbox de 50x50 no centro do container (0,0)
-            enemyContainer.body.setOffset(-25, -25); 
-
-            enemyContainer.body.setVelocityY(this.ENEMY_BASE_SPEED * this.enemySpeedMultiplier); // Usando this.ENEMY_BASE_SPEED e this.enemySpeedMultiplier
-            enemyContainer.body.enable = true; // Garante que o corpo de física esteja ativo
-            enemyContainer.body.active = true; // Garante que o corpo de física esteja ativo
-
-            // Adiciona propriedades customizadas ao container do inimigo
-            enemyContainer.level = Number(this.currentEnemyLevel); // Garante que o nível seja um número
-            enemyContainer.maxHealth = Number(this.ENEMY_HEALTH_PER_LEVEL) * Number(enemyContainer.level) * (1 + (Number(currentStage) - 1) * Number(this.STAGE_DIFFICULTY_INCREASE)); // Garante que todos sejam números
-            enemyContainer.health = Number(enemyContainer.maxHealth); // Garante que a vida seja um número
-            enemyContainer.damage = Number(this.ENEMY_BASE_DAMAGE) * (1 + (Number(enemyContainer.level) - 1) * Number(this.ENEMY_STRENGTH_INCREASE_PER_LEVEL)) * (1 + (Number(currentStage) - 1) * Number(this.STAGE_DIFFICULTY_INCREASE)); // Garante que todos sejam números
-            enemyContainer.lastShotTime = 0;
-            // A taxa de tiro do inimigo: mais rápido com maior dificuldade (menor fireRate)
-            // Multiplicador inverso: 1 / (1 + (speedMultiplier - 1) * 0.5)
-            // Se speedMultiplier = 1, multiplicador = 1. fireRate = 1500
-            // Se speedMultiplier = 2, multiplicador = 1 / (1 + 1 * 0.5) = 1 / 1.5 = 0.66. fireRate = 1000
-            // Se speedMultiplier = 5, multiplicador = 1 / (1 + 4 * 0.5) = 1 / 3 = 0.33. fireRate = 500
-            enemyContainer.fireRate = Number(this.ENEMY_FIRE_RATE) / (1 + (this.enemySpeedMultiplier - 1) * 0.5); 
-            if (enemyContainer.fireRate < 500) enemyContainer.fireRate = 500; // Limita a taxa de tiro mínima (mais rápido possível)
-            console.log(`Enemy spawned. Level: ${enemyContainer.level}, Health: ${enemyContainer.health}, Damage: ${enemyContainer.damage}, Fire Rate: ${enemyContainer.fireRate}`);
-
-
-            // Adiciona um timer para o inimigo atirar
-            enemyContainer.shootEvent = this.time.addEvent({
-                delay: enemyContainer.fireRate,
-                callback: () => {
-                    if (!isPaused) { // Só atira se o jogo não estiver pausado
-                        this.spawnEnemyBulletForEnemy(enemyContainer); // Usando this.spawnEnemyBulletForEnemy
-                    }
-                },
-                loop: true,
-                callbackScope: this // Garante que o 'this' dentro do callback seja a cena
-            });
-
-
-            // Adiciona a barra de vida do inimigo (Phaser Graphics)
-            // A barra de vida será posicionada acima do centro do inimigo (enemyContainer.y)
-            const healthBarYOffset = 50 / 2 + 10; // Metade da altura do hitbox + 10px de margem
-            enemyContainer.healthBarBg = this.add.rectangle(enemyContainer.x, enemyContainer.y - healthBarYOffset, 40, 5, 0x4a5568).setOrigin(0.5, 0.5);
-            enemyContainer.healthBarFill = this.add.rectangle(enemyContainer.x, enemyContainer.y - healthBarYOffset, 40, 5, 0x48bb78).setOrigin(0.5, 0.5);
-            enemyContainer.healthBarBg.setDepth(enemyContainer.depth + 1);
-            enemyContainer.healthBarFill.setDepth(enemyContainer.depth + 2);
-
-            // Associa a barra de vida ao inimigo para atualização de posição
-            enemyContainer.on('changedata', (gameObject, key, value) => {
-                if (key === 'health') {
-                    const healthPercentage = Number(value) / Number(gameObject.maxHealth); // Garante que sejam números
-                    gameObject.healthBarFill.width = 40 * healthPercentage;
-                    gameObject.healthBarFill.fillColor = (healthPercentage > 0.5 ? 0x48bb78 : (healthPercentage > 0.2 ? 0xFFD700 : 0xe53e3e));
-                }
-            });
-            // Atualiza a posição da barra de vida junto com o inimigo
-            enemyContainer.on('destroy', () => {
-                enemyContainer.healthBarBg.destroy();
-                enemyContainer.healthBarFill.destroy();
-                if (enemyContainer.shootEvent) enemyContainer.shootEvent.destroy(); // Destroi o evento de tiro do inimigo
-            });
-            enemyContainer.on('update', () => { // Usar 'update' para sincronizar a posição
-                enemyContainer.healthBarBg.x = enemyContainer.x;
-                enemyContainer.healthBarBg.y = enemyContainer.y - healthBarYOffset;
-                enemyContainer.healthBarFill.x = enemyContainer.x - (40 - enemyContainer.healthBarFill.width) / 2; // Ajusta a origem para a esquerda
-                enemyContainer.healthBarFill.y = enemyContainer.y - healthBarYOffset;
-            });
-        }
-        // Atribui a função ao contexto da cena
-        Phaser.Scene.prototype.spawnEnemy = spawnEnemy;
-
-
-        // Função auxiliar para spawn de tiro de inimigo
-        function spawnEnemyBulletForEnemy(enemy) {
-            // Cria um retângulo para o tiro do inimigo
-            const bulletGraphic = this.add.rectangle(enemy.x, enemy.y + enemy.displayHeight / 2, 4, 10, 0x00FF00); // Verde
-            // Habilita a física para o objeto gráfico e o adiciona ao grupo
-            this.physics.world.enable(bulletGraphic);
-            this.enemyBullets.add(bulletGraphic);
-            
-            // Define explicitamente o tamanho e o offset do corpo de física do tiro
-            bulletGraphic.body.setSize(4, 10);
-            bulletGraphic.body.setOffset(-2, -5); // Offset para centralizar o hitbox no gráfico (origem do gráfico é o centro)
-            bulletGraphic.body.enable = true; // Garante que o corpo de física esteja ativo
-            bulletGraphic.body.active = true; // Garante que o corpo de física esteja ativo
-
-            bulletGraphic.body.setVelocityY(this.ENEMY_BULLET_SPEED); // Usando this.ENEMY_BULLET_SPEED
-            bulletGraphic.damage = Number(enemy.damage); // Garante que o dano seja um número
-            playEnemyShootSound();
-        }
-        // Atribui a função ao contexto da cena
-        Phaser.Scene.prototype.spawnEnemyBulletForEnemy = spawnEnemyBulletForEnemy;
-
-
-        // Função auxiliar para iniciar a luta contra o boss
-        function startBossFight() {
-            bossActive = true;
-            if (spawnEnemyEvent) {
-                spawnEnemyEvent.destroy(); // Para de gerar inimigos normais
-                spawnEnemyEvent = null; // Limpa a referência
-            }
-            this.enemies.clear(true, true); // Remove inimigos existentes
-            this.enemyBullets.clear(true, true); // Remove tiros inimigos existentes
-            this.powerUps.clear(true, true); // Remove power-ups existentes
-
-            // Cria o sprite do boss (objeto Phaser)
-            const bossPhaserObject = this.physics.add.image(config.width / 2, -100, 'boss1')
-                .setOrigin(0.5, 0.5)
-                .setDisplaySize(150, 150) // Ajuste o tamanho conforme necessário
-                .setRotation(Math.PI) // Inverte em 180 graus
-                .setCollideWorldBounds(true)
-                .setImmovable(true);
-            
-            // Ajusta o hitbox do boss para o tamanho da imagem (150x150)
-            bossPhaserObject.body.setSize(150, 150); // Define o tamanho do hitbox para a imagem
-            bossPhaserObject.body.setOffset(0, 0); // Offset 0,0 para origem 0.5,0.5
-            bossPhaserObject.body.enable = true;
-            bossPhaserObject.body.active = true;
-
-            // Cria o objeto de dados do boss
-            boss = {
-                phaserObject: bossPhaserObject, // Referência ao objeto Phaser
-                level: Number(currentStage),
-                maxHealth: Number(this.BOSS_INITIAL_HEALTH) * (1 + (Number(currentStage) - 1) * Number(this.STAGE_DIFFICULTY_INCREASE)),
-                health: 0, // Inicializa para ser preenchido abaixo
-                damage: Number(this.ENEMY_BASE_DAMAGE) * Number(this.BOSS_DAMAGE_MULTIPLIER) * (1 + (Number(currentStage) - 1) * Number(this.STAGE_DIFFICULTY_INCREASE)),
-                speedX: 100 * Number(this.BOSS_SPEED_MULTIPLIER),
-                speedY: 50 * Number(this.BOSS_SPEED_MULTIPLIER), // Nova velocidade Y para movimento oscilatório
-                state: 'entering',
-                isRaging: false,
-                attackPattern: 0, // 0: Normal, 1: Ricochete, 2: Circular
-                lastAttackTime: 0,
-                fireRate: Number(this.ENEMY_FIRE_RATE) / 2 * 1.50, // 750 * 1.50 = 1125
-                lastAttackChangeTime: 0,
-                attackChangeInterval: 2000, // Troca de padrão de ataque a cada 2 segundos
-                currentMovementDirectionX: 1, // Para movimento oscilatório
-                currentMovementDirectionY: 1, // Para movimento oscilatório
-                movementRangeX: config.width * 0.35 / 2, // Metade da área de 35%
-                movementRangeY: config.height * 0.35 / 2, // Metade da área de 35%
-                initialX: config.width / 2, // Será atualizado quando entrar em 'fighting'
-                initialY: 100, // Será atualizado quando entrar em 'fighting'
-            };
-            boss.health = Number(boss.maxHealth); // Define a vida do boss após calcular maxHealth
-
-            console.log('Boss created. Initial Health:', boss.health, 'Max Health:', boss.maxHealth, 'Damage:', boss.damage, 'Fire Rate:', boss.fireRate);
-
-
-            // Atribui o método de tiro diretamente no objeto Phaser do boss
-            boss.phaserObject.shoot = function(scene, bossData) { // Agora recebe a cena e os dados do boss
-                if (bossData.state !== 'fighting' || isPaused) return;
-                const currentTime = scene.time.now;
-
-                if (currentTime - bossData.lastAttackChangeTime > bossData.attackChangeInterval) {
-                    bossData.attackPattern = (bossData.attackPattern + 1) % 3;
-                    bossData.lastAttackChangeTime = currentTime;
-                    console.log('Boss changed attack pattern to:', bossData.attackPattern);
-                }
-
-                if (currentTime - bossData.lastAttackTime > bossData.fireRate) {
-                    const bulletDamage = Number(bossData.damage);
-                    console.log('Boss shooting. Bullet damage:', bulletDamage, typeof bulletDamage, 'Pattern:', bossData.attackPattern);
-                    
-                    switch (bossData.attackPattern) {
-                        case 0: // Tiro normal, reto
-                            const normalBullet = scene.add.rectangle(this.x, this.y + this.displayHeight / 2, 4, 10, 0xFF00FF);
-                            scene.physics.world.enable(normalBullet);
-                            scene.enemyBullets.add(normalBullet);
-                            normalBullet.body.setVelocityY(scene.ENEMY_BULLET_SPEED).damage = bulletDamage;
-                            normalBullet.body.setSize(4, 10);
-                            normalBullet.body.setOffset(-2, -5);
-                            normalBullet.body.enable = true;
-                            normalBullet.body.active = true;
-                            break;
-                        case 1: // Tiro lateral, que ricocheteia
-                            // Tiro para a esquerda
-                            const bounceBulletLeft = scene.add.rectangle(this.x - this.displayWidth * 0.2, this.y + this.displayHeight / 2, 4, 10, 0x00FFFF);
-                            scene.physics.world.enable(bounceBulletLeft);
-                            scene.enemyBullets.add(bounceBulletLeft);
-                            bounceBulletLeft.body.setVelocity(-scene.ENEMY_BULLET_SPEED / 2, scene.ENEMY_BULLET_SPEED);
-                            bounceBulletLeft.body.setBounce(1, 1); // Ricochete total
-                            bounceBulletLeft.body.setCollideWorldBounds(true); // Colide com as bordas do mundo
-                            bounceBulletLeft.damage = bulletDamage;
-                            bounceBulletLeft.body.setSize(4, 10);
-                            bounceBulletLeft.body.setOffset(-2, -5);
-                            bounceBulletLeft.body.enable = true;
-                            bounceBulletLeft.body.active = true;
-
-                            // Tiro para a direita
-                            const bounceBulletRight = scene.add.rectangle(this.x + this.displayWidth * 0.2, this.y + this.displayHeight / 2, 4, 10, 0x00FFFF);
-                            scene.physics.world.enable(bounceBulletRight);
-                            scene.enemyBullets.add(bounceBulletRight);
-                            bounceBulletRight.body.setVelocity(scene.ENEMY_BULLET_SPEED / 2, scene.ENEMY_BULLET_SPEED);
-                            bounceBulletRight.body.setBounce(1, 1); // Ricochete total
-                            bounceBulletRight.body.setCollideWorldBounds(true); // Colide com as bordas do mundo
-                            bounceBulletRight.damage = bulletDamage;
-                            bounceBulletRight.body.setSize(4, 10);
-                            bounceBulletRight.body.setOffset(-2, -5);
-                            bounceBulletRight.body.enable = true;
-                            bounceBulletRight.body.active = true;
-                            break;
-                        case 2: // Tiro disparado em todas as direções (circular)
-                            const numCircularBullets = 8; // Número de tiros no círculo
-                            const angleStep = 360 / numCircularBullets;
-                            for (let i = 0; i < numCircularBullets; i++) {
-                                const angle = Phaser.Math.DegToRad(i * angleStep + 90); // +90 para começar apontando para baixo
-                                const circularBullet = scene.add.rectangle(this.x, this.y, 4, 10, 0xFF0000);
-                                scene.physics.world.enable(circularBullet);
-                                scene.enemyBullets.add(circularBullet);
-                                
-                                // Define a velocidade na direção do ângulo
-                                circularBullet.body.setVelocity(
-                                    Math.cos(angle) * scene.ENEMY_BULLET_SPEED,
-                                    Math.sin(angle) * scene.ENEMY_BULLET_SPEED
-                                );
-                                circularBullet.damage = bulletDamage;
-                                circularBullet.body.setSize(4, 10);
-                                circularBullet.body.setOffset(-2, -5);
-                                circularBullet.body.enable = true;
-                                circularBullet.body.active = true;
-                            }
-                            break;
-                    }
-                    playEnemyShootSound();
-                    bossData.lastAttackTime = currentTime; // Atualiza lastAttackTime no objeto de dados
-                }
-            };
-
-            // Exibe a barra de vida do boss
-            bossHealthBarBackground.setVisible(true);
-            bossHealthBarFill.setVisible(true);
-            bossHealthText.setVisible(true);
-            
-            // Atualiza a UI do boss na criação
-            if (bossHealthText) {
-                bossHealthText.setText(`BOSS: ${Math.max(0, Math.floor(boss.health))} / ${Math.floor(boss.maxHealth)}`);
-            }
-            if (bossHealthBarFill) {
-                bossHealthBarFill.width = 300 * (Number(boss.health) / Number(boss.maxHealth));
-                bossHealthBarFill.x = config.width / 2 - (300 - bossHealthBarFill.width) / 2;
-            }
-
-
-            // Adiciona novamente as colisões com o boss, usando boss.phaserObject
-            this.physics.add.overlap(this.bullets, boss.phaserObject, this.hitBoss, null, this);
-            this.physics.add.overlap(player, boss.phaserObject, this.hitPlayerByBoss, null, this);
-        }
-        // Atribui a função ao contexto da cena
-        Phaser.Scene.prototype.startBossFight = startBossFight;
-
-
-        // --- Collision Callbacks (agora métodos da cena) ---
-
-        function hitEnemy(bullet, enemy) {
-            console.log('hitEnemy: Bullet damage:', bullet.damage, 'Enemy health BEFORE:', enemy.health); // LOG
-            bullet.destroy(); // Destrói o tiro
-            enemy.health -= Number(bullet.damage); // Inimigo toma dano, garante que seja número
-            console.log('hitEnemy: Enemy health AFTER:', enemy.health); // LOG
-
-            // Atualiza a barra de vida do inimigo
-            const healthPercentage = Number(enemy.health) / Number(enemy.maxHealth); // Garante que sejam números
-            enemy.healthBarFill.width = 40 * healthPercentage;
-            enemy.healthBarFill.fillColor = (healthPercentage > 0.5 ? 0x48bb78 : (healthPercentage > 0.2 ? 0xFFD700 : 0xe53e3e));
-
-            if (enemy.health <= 0) {
-                score += 1;
-                playExplosionSound();
-                this.spawnParticles(enemy.x, enemy.y, 20, 0xFFD700); // Usando this.spawnParticles
-                enemy.body.enable = false; // Desabilita a física imediatamente
-                enemy.destroy(); // Destrói o inimigo
-                console.log('hitEnemy: Enemy DESTROYED! Score:', score); // LOG
-
-                // Chance de dropar power-up
-                if (Math.random() < this.POWER_UP_DROP_CHANCE) { // Usando this.POWER_UP_DROP_CHANCE
-                    const rand = Math.random();
-                    let type;
-                    if (rand < 0.33) type = 'rapidFire';
-                    else if (rand < 0.66) type = 'shield';
-                    else type = 'damageUp';
-                    this.spawnPowerUp(enemy.x, enemy.y, type); // Usando this.spawnPowerUp
-                }
-            } else {
                 playHitSound();
-                this.spawnParticles(bullet.x, bullet.y, 5, 0xFFFF00); // Usando this.spawnParticles
-                console.log('hitEnemy: Enemy took damage, not destroyed.'); // LOG
             }
-        }
-        Phaser.Scene.prototype.hitEnemy = hitEnemy;
-
-
-        function hitBoss(bullet, bossPhaserObject) { // Agora recebe o objeto Phaser do boss
-            // Usa a variável global 'boss' para acessar os dados do boss (vida, etc.)
-            // Não é mais necessário o check de mismatch, pois a estrutura do boss foi melhorada.
-            if (!boss || !boss.phaserObject) {
-                console.warn('hitBoss: Boss object not found or not fully initialized. Ignoring hit.');
-                bullet.destroy();
-                return;
-            }
-
-            console.log('hitBoss: Bullet damage:', bullet.damage, 'Boss health BEFORE:', boss.health); // LOG
-            bullet.destroy();
-            boss.health -= Number(bullet.damage); // Garante que o dano seja um número
-            console.log('hitBoss: Boss health AFTER:', boss.health, typeof boss.health); // LOG
-
-            this.bossUpdateRageMode(boss, this); // Passa o objeto de dados do boss e a cena
-
-            // Atualiza a UI da barra de vida do boss
-            if (bossHealthBarFill) {
-                bossHealthBarFill.width = 300 * (Number(boss.health) / Number(boss.maxHealth)); // Garante que sejam números
-                bossHealthBarFill.x = config.width / 2 - (300 - bossHealthBarFill.width) / 2; // Ajusta a origem
-            }
-            if (bossHealthText) {
-                bossHealthText.setText(`BOSS: ${Math.max(0, Math.floor(boss.health))} / ${Math.floor(boss.maxHealth)}`);
-            }
-            
-            if (Number(boss.health) <= 0) { // Garante que seja número
-                console.log('hitBoss: Boss defeated!'); // LOG
-                playBossDefeatSound();
-                playExplosionSound();
-                this.spawnParticles(bossPhaserObject.x, bossPhaserObject.y, 50, 0xFFD700); // Usando o phaserObject para posição
-                
-                // Esconde as barras de vida do boss
-                if (bossHealthBarBackground) bossHealthBarBackground.setVisible(false);
-                if (bossHealthBarFill) bossHealthBarFill.setVisible(false);
-                if (bossHealthText) bossHealthText.setVisible(false);
-
-                // Destrói o boss e limpa referências
-                bossPhaserObject.body.enable = false; // Desabilita a física imediatamente
-                bossPhaserObject.destroy();
-                bossActive = false; // Define como falso antes de null
-                boss = null; // Limpa a referência global do objeto de dados do boss
-                this.enemyBullets.clear(true, true); // Remove todos os tiros do boss
-
-                score += 100;
-                currentStage++;
-                // Reinicia a lógica do jogo para o próximo estágio
-                this.scene.restart(); // Reinicia a cena Phaser
-            } else {
-                playBossHitSound();
-                this.spawnParticles(bullet.x, bullet.y, 10, 0xFFD700); // Usando this.spawnParticles
-                console.log('hitBoss: Boss took damage, not defeated.'); // LOG
-            }
-        }
-        Phaser.Scene.prototype.hitBoss = hitBoss;
-
-
-        function hitPlayerByEnemy(playerInstance, enemy) {
-            console.log('hitPlayerByEnemy: Player health BEFORE:', playerInstance.health, 'Enemy collision damage:', this.ENEMY_COLLISION_DAMAGE); // LOG
-            // Se o jogador tiver escudo ativo, absorve o dano e o escudo diminui
-            if (playerInstance.shieldActive && playerInstance.shield > 0) {
-                const damageToTake = Number(this.ENEMY_COLLISION_DAMAGE); // Garante que seja número
-                playerInstance.shield = Number(playerInstance.shield) - damageToTake; // Garante que seja número
-                if (playerInstance.shield < 0) {
-                    playerInstance.health = Number(playerInstance.health) + playerInstance.shield; // Reduz a vida se o escudo for negativo, garante que seja número
-                    playerInstance.shield = 0;
-                }
-                this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD);
-                playHitSound(); // Som de escudo atingido
-            } else {
-                playerInstance.health = Number(playerInstance.health) - Number(this.ENEMY_COLLISION_DAMAGE); // Garante que seja número
-                this.updatePlayerHealthDisplay(playerInstance.health, 100); // Usando a função auxiliar
-                playExplosionSound(); // Som de dano no jogador
-                this.spawnParticles(playerInstance.x, playerInstance.y, 15, 0xFF0000); // Partículas de dano no jogador
-            }
-            
-            enemy.body.enable = false; // Desabilita a física imediatamente
-            enemy.destroy(); // Destrói o inimigo ao colidir
-
-            console.log('hitPlayerByEnemy: Player health AFTER:', playerInstance.health); // LOG
-            if (Number(playerInstance.health) <= 0) { // Garante que seja número
-                this.endGame(); // Usando this.endGame
-            }
-        }
-        Phaser.Scene.prototype.hitPlayerByEnemy = hitPlayerByEnemy;
-
-
-        function hitPlayerByEnemyBullet(playerInstance, bullet) {
-            console.log('hitPlayerByEnemyBullet: Player health BEFORE:', playerInstance.health, 'Bullet damage:', bullet.damage); // LOG
-            // Se o jogador tiver escudo ativo, absorve o dano e o escudo diminui
-            if (playerInstance.shieldActive && playerInstance.shield > 0) {
-                const damageToTake = Number(bullet.damage); // Garante que seja número
-                playerInstance.shield = Number(playerInstance.shield) - damageToTake; // Garante que seja número
-                if (playerInstance.shield < 0) {
-                    playerInstance.health = Number(playerInstance.health) + playerInstance.shield; // Reduz a vida se o escudo for negativo, garante que seja número
-                    playerInstance.shield = 0;
-                }
-                this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD);
-                playHitSound(); // Som de escudo atingido
-            } else {
-                playerInstance.health = Number(playerInstance.health) - Number(bullet.damage); // Garante que seja número
-                this.updatePlayerHealthDisplay(playerInstance.health, 100); // Usando a função auxiliar
-                playHitSound(); // Som de dano no jogador
-                this.spawnParticles(bullet.x, bullet.y, 10, 0xFF0000); // Partículas de dano no jogador
-            }
-            bullet.destroy(); // Destrói o tiro
-            console.log('hitPlayerByEnemyBullet: Player health AFTER:', playerInstance.health); // LOG
-            if (Number(playerInstance.health) <= 0) { // Garante que seja número
-                this.endGame(); // Usando this.endGame
-            }
-        }
-        Phaser.Scene.prototype.hitPlayerByEnemyBullet = hitPlayerByEnemyBullet;
-
-        // Nova função para hitPlayerByBoss
-        function hitPlayerByBoss(playerInstance, bossPhaserObject) { // Agora recebe o objeto Phaser do boss
-            // Usa a variável global 'boss' para acessar os dados do boss (vida, etc.)
-            if (!boss || !boss.phaserObject) {
-                console.warn('hitPlayerByBoss: Boss object not found or not fully initialized. Ignoring hit.');
-                return;
-            }
-
-            console.log('hitPlayerByBoss: Player health BEFORE:', playerInstance.health, 'Boss collision damage:', this.BOSS_COLLISION_DAMAGE); // LOG
-            // Se o jogador tiver escudo ativo, absorve o dano e o escudo diminui
-            if (playerInstance.shieldActive && playerInstance.shield > 0) {
-                const damageToTake = Number(this.BOSS_COLLISION_DAMAGE); // Garante que seja número
-                playerInstance.shield = Number(playerInstance.shield) - damageToTake; // Garante que seja número
-                if (playerInstance.shield < 0) {
-                    playerInstance.health = Number(playerInstance.health) + playerInstance.shield; // Reduz a vida se o escudo for negativo, garante que seja número
-                    playerInstance.shield = 0;
-                }
-                this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD);
-                playHitSound(); // Som de escudo atingido
-            } else {
-                playerInstance.health = Number(playerInstance.health) - Number(this.BOSS_COLLISION_DAMAGE); // Garante que seja número
-                this.updatePlayerHealthDisplay(playerInstance.health, 100);
-                playExplosionSound();
-                this.spawnParticles(playerInstance.x, playerInstance.y, 30, 0xFF0000);
-            }
-            console.log('hitPlayerByBoss: Player health AFTER:', playerInstance.health); // LOG
-            if (Number(playerInstance.health) <= 0) { // Garante que seja número
-                this.endGame();
-            }
-        }
-        Phaser.Scene.prototype.hitPlayerByBoss = hitPlayerByBoss;
-
-
-        function collectPowerUp(playerInstance, powerUp) {
-            playPowerUpSound();
-            if (powerUp.type === 'rapidFire') {
-                playerInstance.rapidFireActive = true;
-                if (activePowerUps.rapidFireTimer) clearTimeout(activePowerUps.rapidFireTimer);
-                activePowerUps.rapidFireTimer = setTimeout(() => {
-                    playerInstance.rapidFireActive = false;
-                    this.updatePlayerPowerUpStatusDisplay(playerInstance.rapidFireActive, playerInstance.shieldActive, playerInstance.bulletDamage); // Usando this.updatePlayerPowerUpStatusDisplay
-                }, this.POWER_UP_DURATION); // Usando this.POWER_UP_DURATION
-            } else if (powerUp.type === 'shield') {
-                playerInstance.shield = Number(this.MAX_SHIELD); // Garante que seja número
-                playerInstance.shieldActive = true;
-                this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD); // Usando a função auxiliar e this.MAX_SHIELD
+            activateShieldPowerUp(duration) {
+                this.shield = MAX_SHIELD; this.shieldActive = true; this.updateShieldDisplay();
                 if (activePowerUps.shieldTimer) clearTimeout(activePowerUps.shieldTimer);
                 activePowerUps.shieldTimer = setTimeout(() => {
-                    playerInstance.shield = 0;
-                    playerInstance.shieldActive = false;
-                    this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD); // Usando a função auxiliar e this.MAX_SHIELD
-                    this.updatePlayerPowerUpStatusDisplay(playerInstance.rapidFireActive, playerInstance.shieldActive, playerInstance.bulletDamage); // Usando this.updatePlayerPowerUpStatusDisplay
-                }, this.POWER_UP_DURATION); // Usando this.POWER_UP_DURATION
-            } else if (powerUp.type === 'damageUp') {
-                playerInstance.bulletDamage = Number(playerInstance.bulletDamage) + 1; // Garante que seja número
+                    this.shield = 0; this.shieldActive = false; this.updateShieldDisplay(); this.updatePowerUpStatusDisplay();
+                }, duration);
+                this.updatePowerUpStatusDisplay();
             }
-            this.updatePlayerPowerUpStatusDisplay(playerInstance.rapidFireActive, playerInstance.shieldActive, playerInstance.bulletDamage); // Atualiza após coletar
-            powerUp.destroy();
-            // Destrói o texto do power-up que foi criado junto com ele
-            if (powerUp.symbolText) {
-                powerUp.symbolText.destroy();
+            activateRapidFire(duration) {
+                this.rapidFireActive = true;
+                if (activePowerUps.rapidFireTimer) clearTimeout(activePowerUps.rapidFireTimer);
+                activePowerUps.rapidFireTimer = setTimeout(() => {
+                    this.rapidFireActive = false; this.updatePowerUpStatusDisplay();
+                }, duration);
+                this.updatePowerUpStatusDisplay();
+            }
+            increaseDamage(amount) {
+                this.bulletDamage += amount; this.updatePowerUpStatusDisplay();
+            }
+            updateHealthDisplay() {
+                healthDisplay.textContent = this.health; healthBar.style.width = `${this.health}%`;
+                healthBar.style.backgroundColor = this.health <= 20 ? '#e53e3e' : '#48bb78';
+            }
+            updateShieldDisplay() {
+                shieldDisplay.textContent = this.shield; shieldBar.style.width = `${(this.shield / MAX_SHIELD) * 100}%`;
+            }
+            updatePowerUpStatusDisplay() {
+                let statusText = [];
+                if (this.rapidFireActive) statusText.push('Tiro Rápido');
+                if (this.shieldActive) statusText.push('Escudo');
+                if (this.bulletDamage > PLAYER_BASE_BULLET_DAMAGE) statusText.push(`Dano +${this.bulletDamage - PLAYER_BASE_BULLET_DAMAGE}`);
+                powerupStatusDisplay.textContent = statusText.length === 0 ? 'Nenhum' : statusText.join(', ');
+                playerDamageDisplay.textContent = this.bulletDamage; // Atualiza o display de dano
             }
         }
-        Phaser.Scene.prototype.collectPowerUp = collectPowerUp;
 
+        class Bullet extends GameObject {
+            constructor(x, y, width, height, color, speedY, damage = 1) {
+                super(x, y, width, height, color); this.speedY = speedY; this.damage = damage;
+            }
+            update() { this.y += this.speedY; }
+        }
 
-        function spawnPowerUp(x, y, type) {
-            // Cria um objeto gráfico para o power-up
-            const powerUpGraphic = this.add.graphics();
-            let color, symbol;
-            if (type === 'rapidFire') { color = 0xFFD700; symbol = '⚡'; }
-            else if (type === 'shield') { color = 0x8A2BE2; symbol = '🛡️'; }
-            else if (type === 'damageUp') { color = 0xFF6347; symbol = '+1'; }
+        class Enemy extends GameObject {
+            constructor(x, y, level, stage) {
+                const enemyColor = ENEMY_COLORS[Math.min(level - 1, ENEMY_COLORS.length - 1)];
+                super(x, y, 50, 50, enemyColor);
+                this.lastShotTime = 0; this.fireRate = ENEMY_FIRE_RATE + Math.random() * 1000;
+                this.level = level;
+                this.maxHealth = ENEMY_HEALTH_PER_LEVEL * this.level * (1 + (stage - 1) * STAGE_DIFFICULTY_INCREASE);
+                this.health = this.maxHealth;
+                this.damage = ENEMY_BASE_DAMAGE * (1 + (this.level - 1) * ENEMY_STRENGTH_INCREASE_PER_LEVEL) * (1 + (stage - 1) * STAGE_DIFFICULTY_INCREASE);
+            }
+            draw() {
+                ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.fillStyle = '#8B0000'; ctx.fillRect(this.x + this.width * 0.2, this.y + this.height * 0.2, this.width * 0.6, this.height * 0.6);
+                ctx.fillStyle = '#FF4500';
+                ctx.fillRect(this.x - 10, this.y + this.height / 4, 10, this.height / 2);
+                ctx.fillRect(this.x + this.width, this.y + this.height / 4, 10, this.height / 2);
 
-            powerUpGraphic.fillStyle(color, 1);
-            if (type === 'rapidFire') {
-                const outerRadius = 15; // Tamanho fixo para o power-up
-                const innerRadius = outerRadius / 2.5;
-                const numPoints = 5;
-                powerUpGraphic.beginPath();
-                for (let i = 0; i < numPoints * 2; i++) {
-                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                    const angle = (Math.PI / numPoints) * i;
-                    const px = radius * Math.sin(angle);
-                    const py = -radius * Math.cos(angle); // Inverte Y para desenhar para cima
-                    if (i === 0) powerUpGraphic.moveTo(px, py); else powerUpGraphic.lineTo(px, py);
+                const healthBarWidth = 40; const healthBarHeight = 5;
+                const healthPercentage = this.health / this.maxHealth;
+                ctx.fillStyle = '#4a5568';
+                ctx.fillRect(this.x + (this.width - healthBarWidth) / 2, this.y - healthBarHeight - 5, healthBarWidth, healthBarHeight);
+                ctx.fillStyle = healthPercentage > 0.5 ? '#48bb78' : (healthPercentage > 0.2 ? '#FFD700' : '#e53e3e');
+                ctx.fillRect(this.x + (this.width - healthBarWidth) / 2, this.y - healthBarHeight - 5, healthBarWidth * healthPercentage, healthBarHeight);
+            }
+            update() { this.y += ENEMY_BASE_SPEED * enemySpeedMultiplier; }
+            shoot() {
+                const currentTime = Date.now();
+                if (currentTime - this.lastShotTime > this.fireRate) {
+                    enemyBullets.push(new Bullet(this.x + this.width / 2 - 2, this.y + this.height, 4, 10, '#00FF00', ENEMY_BULLET_SPEED, this.damage));
+                    this.lastShotTime = currentTime; playEnemyShootSound();
                 }
-                powerUpGraphic.closePath();
-                powerUpGraphic.fill();
+            }
+            takeDamage(amount) {
+                this.health -= amount; playHitSound();
+                for (let i = 0; i < 5; i++) particles.push(new Particle(this.x + this.width / 2, this.y + this.height / 2, 3, '#FFFF00', (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 20));
+                return this.health <= 0;
+            }
+        }
+
+        class Boss extends GameObject {
+            constructor(x, y, level, stage) {
+                super(x, y, 150, 150, '#FF4500');
+                this.lastShotTime = 0; this.fireRate = ENEMY_FIRE_RATE / 2;
+                this.level = level;
+                this.maxHealth = (ENEMY_HEALTH_PER_LEVEL * this.level) * BOSS_HEALTH_MULTIPLIER * (1 + (stage - 1) * STAGE_DIFFICULTY_INCREASE);
+                this.health = this.maxHealth;
+                this.damage = (ENEMY_BASE_DAMAGE * (1 + (this.level - 1) * ENEMY_STRENGTH_INCREASE_PER_LEVEL)) * BOSS_DAMAGE_MULTIPLIER * (1 + (stage - 1) * STAGE_DIFFICULTY_INCREASE);
+                this.speedX = 2; this.state = 'entering'; this.isRaging = false;
+                this.attackPattern = 0; this.lastAttackChangeTime = 0; this.attackChangeInterval = 2000;
+            }
+            draw() {
+                ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.fillStyle = '#8B0000'; ctx.fillRect(this.x + this.width * 0.1, this.y + this.height * 0.1, this.width * 0.8, this.height * 0.8);
+                ctx.fillStyle = '#FFD700'; ctx.beginPath();
+                ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 4, 0, Math.PI * 2);
+                ctx.fill();
+                if (this.isRaging) { ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 5; ctx.strokeRect(this.x, this.y, this.width, this.height); }
+            }
+            update() {
+                if (!this.isRaging && this.health / this.maxHealth <= BOSS_RAGE_THRESHOLD) {
+                    this.isRaging = true; this.fireRate *= BOSS_RAGE_FIRE_RATE_MULTIPLIER;
+                    this.damage *= BOSS_RAGE_DAMAGE_MULTIPLIER; this.speedX *= BOSS_RAGE_SPEED_MULTIPLIER;
+                    this.color = '#B22222';
+                }
+                if (this.state === 'entering') {
+                    this.y += BOSS_ENTRY_SPEED;
+                    if (this.y >= 50) { this.y = 50; this.state = 'fighting'; }
+                } else if (this.state === 'fighting') {
+                    this.x += this.speedX;
+                    if (this.x + this.width > canvas.width || this.x < 0) { this.speedX *= -1; }
+                }
+            }
+            shoot() {
+                if (this.state !== 'fighting') return;
+                const currentTime = Date.now();
+                if (currentTime - this.lastAttackChangeTime > this.attackChangeInterval) {
+                    this.attackPattern = (this.attackPattern + 1) % 3; this.lastAttackChangeTime = currentTime;
+                }
+                if (currentTime - this.lastShotTime > this.fireRate) {
+                    const bulletDamage = this.damage;
+                    switch (this.attackPattern) {
+                        case 0: // Double Shot
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.25, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED, bulletDamage));
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.75, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED, bulletDamage));
+                            break;
+                        case 1: // Triple Shot
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.2, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED, bulletDamage));
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.5, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED, bulletDamage));
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.8, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED, bulletDamage));
+                            break;
+                        case 2: // Fan Shot
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.2, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED, bulletDamage));
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.5, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED * 0.8, bulletDamage));
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.8, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED, bulletDamage));
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.1, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED * 1.2, bulletDamage));
+                            enemyBullets.push(new Bullet(this.x + this.width * 0.9, this.y + this.height, 4, 10, '#FF00FF', ENEMY_BULLET_SPEED * 1.2, bulletDamage));
+                            break;
+                    }
+                    this.lastShotTime = currentTime; playEnemyShootSound();
+                }
+            }
+            takeDamage(amount) {
+                this.health -= amount; playBossHitSound();
+                for (let i = 0; i < 10; i++) particles.push(new Particle(this.x + this.width / 2, this.y + this.height / 2, Math.random() * 8 + 2, `hsl(${Math.random() * 60}, 100%, 50%)`, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, 30));
+                this.updateBossHealthDisplay(); return this.health <= 0;
+            }
+            updateBossHealthDisplay() {
+                bossHealthDisplay.textContent = `${Math.max(0, Math.floor(this.health))} / ${Math.floor(this.maxHealth)}`;
+                bossHealthBar.style.width = `${(this.health / this.maxHealth) * 100}%`;
+            }
+        }
+
+        class PowerUp extends GameObject {
+            constructor(x, y, type) {
+                let color, symbol;
+                if (type === 'rapidFire') { color = '#FFD700'; symbol = '⚡'; }
+                else if (type === 'shield') { color = '#8A2BE2'; symbol = '🛡️'; }
+                else if (type === 'damageUp') { color = '#FF6347'; symbol = '+1'; }
+                super(x, y, 25, 25, color); this.type = type; this.symbol = symbol;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                if (this.type === 'rapidFire') {
+                    ctx.beginPath(); const outerRadius = this.width / 2; const innerRadius = outerRadius / 2.5; const numPoints = 5;
+                    for (let i = 0; i < numPoints * 2; i++) {
+                        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                        const angle = (Math.PI / numPoints) * i;
+                        const px = this.x + this.width / 2 + radius * Math.sin(angle);
+                        const py = this.y + this.height / 2 - radius * Math.cos(angle);
+                        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath(); ctx.fill();
+                } else {
+                    ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.fillStyle = '#FFFFFF'; ctx.font = '16px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(this.symbol, this.x + this.width / 2, this.y + this.height / 2 + 2);
+            }
+            update() { this.y += (ENEMY_BASE_SPEED / 2) * enemySpeedMultiplier; }
+        }
+
+        function checkCollision(obj1, obj2) {
+            if (!obj1 || !obj2) return false;
+            return obj1.x < obj2.x + obj2.width && obj1.x + obj1.width > obj2.x &&
+                   obj1.y < obj2.y + obj2.height && obj1.y + obj1.height > obj2.y;
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseScreen.style.display = 'flex';
+                clearInterval(spawnEnemyInterval);
+                Tone.Transport.pause(); // Pausa o transporte do Tone.js
             } else {
-                powerUpGraphic.fillCircle(0, 0, 15); // Tamanho fixo para o power-up
-            }
-
-            // Habilita a física para o objeto gráfico e o adiciona ao grupo
-            this.physics.world.enable(powerUpGraphic);
-            this.powerUps.add(powerUpGraphic);
-            powerUpGraphic.setPosition(x, y); // Define a posição
-            powerUpGraphic.body.setVelocityY((this.ENEMY_BASE_SPEED / 2) * this.enemySpeedMultiplier); // Usando this.ENEMY_BASE_SPEED e this.enemySpeedMultiplier
-            powerUpGraphic.body.setSize(30, 30); // Ajusta o hitbox (tamanho do círculo/estrela)
-            powerUpGraphic.body.setOffset(-15, -15); // Ajusta o offset do hitbox
-            powerUpGraphic.type = type;
-            powerUpGraphic.body.enable = true; // Garante que o corpo de física esteja ativo
-            powerUpGraphic.body.active = true; // Garante que o corpo de física esteja ativo
-
-            // CORREÇÃO AQUI: Use this.add.text diretamente
-            powerUpGraphic.symbolText = this.add.text(x, y, symbol, { fontSize: '16px', fill: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5, 0.5);
-            powerUpGraphic.setDepth(player.depth + 1); // Garante que o power-up esteja acima de outros objetos
-
-            // Sincroniza a posição do texto com o power-up
-            powerUpGraphic.on('destroy', () => { if (powerUpGraphic.symbolText) powerUpGraphic.symbolText.destroy(); });
-            powerUpGraphic.on('update', () => {
-                if (powerUpGraphic.symbolText) {
-                    powerUpGraphic.symbolText.x = powerUpGraphic.x;
-                    powerUpGraphic.symbolText.y = powerUpGraphic.y + 2; // Ajuste fino para centralizar
+                pauseScreen.style.display = 'none';
+                // Só reinicia o spawn de inimigos se não estiver em boss fight
+                if (!bossActive) {
+                    spawnEnemyInterval = setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
                 }
-            });
+                if (gameSettings.backgroundMusicEnabled) {
+                    Tone.Transport.start(); // Retoma o transporte
+                }
+                gameLoop(); // Retoma o loop do jogo
+            }
         }
-        Phaser.Scene.prototype.spawnPowerUp = spawnPowerUp;
 
+        function startGame() {
+            startScreen.style.display = 'none'; gameOverScreen.style.display = 'none';
+            settingsScreen.style.display = 'none'; pauseScreen.style.display = 'none';
 
-        function spawnParticles(x, y, count, color) {
-            for (let i = 0; i < count; i++) {
-                const size = Phaser.Math.Between(2, 8);
-                const speedX = Phaser.Math.Between(-100, 100);
-                const speedY = Phaser.Math.Between(-100, 100);
-                const life = Phaser.Math.Between(200, 600); // Milissegundos
+            if (Tone.context.state !== 'running') {
+                Tone.start().then(() => {
+                    console.log('Audio context started');
+                    initGameLogic();
+                    if (gameSettings.backgroundMusicEnabled) {
+                        backgroundMusic.start(0); Tone.Transport.start();
+                    }
+                }).catch(e => console.error("Erro ao iniciar o contexto de áudio:", e));
+            } else {
+                initGameLogic();
+                if (gameSettings.backgroundMusicEnabled) {
+                    backgroundMusic.start(0); Tone.Transport.start();
+                }
+            }
+            // Mostra o botão de pausa apenas em mobile
+            if (isMobile()) {
+                pauseButton.style.display = 'flex';
+            } else {
+                pauseButton.style.display = 'none';
+            }
+        }
 
-                const particle = this.add.rectangle(x, y, size, size, color).setDepth(20);
-                this.tweens.add({
-                    targets: particle,
-                    x: particle.x + speedX,
-                    y: particle.y + speedY,
-                    alpha: 0,
-                    duration: life,
-                    ease: 'Power1',
-                    onComplete: () => particle.destroy()
+        function initGameLogic() {
+            if (!playerShootSound) initSounds();
+
+            player = new Player(canvas.width / 2 - PLAYER_INITIAL_WIDTH / 2, canvas.height / 2 - PLAYER_INITIAL_HEIGHT / 2);
+
+            bullets = []; enemies = []; enemyBullets = []; powerUps = []; particles = [];
+            initStars();
+
+            if (currentStage === 1) {
+                score = 0; player.health = 100; player.shield = 0; player.bulletDamage = PLAYER_BASE_BULLET_DAMAGE;
+            }
+            player.updateHealthDisplay(); player.updateShieldDisplay(); player.updatePowerUpStatusDisplay();
+            scoreDisplay.textContent = score;
+            currentStageDisplay.textContent = currentStage; // Atualiza o display do estágio
+
+            activePowerUps = {}; player.rapidFireActive = false; player.shieldActive = false;
+            player.fireRate = PLAYER_FIRE_RATE;
+
+            enemySpeedMultiplier = 1; currentEnemyLevel = 1;
+
+            bossActive = false; boss = null; bossHealthBarContainer.style.display = 'none';
+
+            gameRunning = true; isPaused = false;
+
+            if (!bossActive) spawnEnemyInterval = setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
+
+            // Garante que o loop de animação seja iniciado apenas uma vez
+            if (!animationFrameId) {
+                gameLoop();
+            }
+        }
+
+        function spawnEnemy() {
+            if (!gameRunning || bossActive || isPaused) return;
+            const x = Math.random() * (canvas.width - 50);
+            enemies.push(new Enemy(x, -50, currentEnemyLevel, currentStage));
+        }
+
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < NUM_STARS; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                    size: Math.random() * 2 + 1, opacity: Math.random() * 0.5 + 0.5
                 });
             }
         }
-        Phaser.Scene.prototype.spawnParticles = spawnParticles;
 
+        function startBossFight() {
+            bossActive = true; clearInterval(spawnEnemyInterval);
+            enemies = []; enemyBullets = []; powerUps = []; particles = [];
+
+            boss = new Boss(canvas.width / 2 - 75, -200, currentEnemyLevel, currentStage);
+            bossHealthBarContainer.style.display = 'block'; boss.updateBossHealthDisplay();
+        }
+
+        function update() {
+            if (!gameRunning || isPaused) return;
+
+            if (score > 0 && score % BOSS_SCORE_THRESHOLD === 0 && !bossActive && boss === null) {
+                startBossFight();
+            }
+
+            currentEnemyLevel = Math.floor(score / SCORE_PER_ENEMY_LEVEL_UP) + 1;
+            enemySpeedMultiplier = 1 + (currentEnemyLevel - 1) * ENEMY_STRENGTH_INCREASE_PER_LEVEL;
+            if (enemySpeedMultiplier > 5) enemySpeedMultiplier = 5;
+
+            stars.forEach(star => {
+                star.y += STAR_SPEED;
+                if (star.y > canvas.height) { star.y = 0; star.x = Math.random() * canvas.width; }
+            });
+
+            player.shoot();
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                if (!bullets[i]) continue; bullets[i].update();
+                if (bullets[i].y < 0) bullets.splice(i, 1);
+            }
+
+            if (bossActive && boss) {
+                boss.update(); boss.shoot();
+
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    if (!bullets[i]) continue;
+                    if (checkCollision(bullets[i], boss)) {
+                        if (boss.takeDamage(bullets[i].damage)) {
+                            playBossDefeatSound(); playExplosionSound();
+                            for (let p = 0; p < 50; p++) particles.push(new Particle(boss.x + boss.width / 2, boss.y + boss.height / 2, Math.random() * 8 + 2, `hsl(${Math.random() * 60}, 100%, 50%)`, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, 60));
+                            score += 100; scoreDisplay.textContent = score; currentStage++;
+                            currentStageDisplay.textContent = currentStage; // Atualiza o display do estágio
+                            
+                            // Lógica de progressão de chefe: 40% a mais de pontos para o próximo chefe
+                            BOSS_SCORE_THRESHOLD = Math.floor(BOSS_SCORE_THRESHOLD * 1.4);
+                            console.log(`Próximo chefe em Estágio ${currentStage}. Limite de pontuação: ${BOSS_SCORE_THRESHOLD}`);
+
+                            // Reinicia o spawn de inimigos normais
+                            spawnEnemyInterval = setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
+                            bossActive = false; // Desativa o modo boss
+                            boss = null; // Limpa a referência do boss
+                            bossHealthBarContainer.style.display = 'none'; // Esconde a barra de vida do boss
+                            enemyBullets = []; // Limpa os tiros do boss
+                            
+                            // Não reinicia o jogo completo, apenas o estado para o próximo estágio
+                            // O player, score, etc. persistem.
+                            return; // Sai da função update para evitar processamento adicional
+                        }
+                        bullets.splice(i, 1);
+                    }
+                }
+                if (checkCollision(player, boss)) {
+                    player.takeDamage(BOSS_COLLISION_DAMAGE);
+                    if (player.health <= 0) {
+                        playExplosionSound();
+                        for (let p = 0; p < 30; p++) particles.push(new Particle(player.x + player.width / 2, player.y + player.height / 2, Math.random() * 5 + 1, `hsl(${Math.random() * 360}, 100%, 50%)`, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, 40));
+                        endGame(); return;
+                    }
+                }
+            } else {
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    if (!enemies[i]) continue; enemies[i].update(); enemies[i].shoot();
+                    if (enemies[i].y > canvas.height) enemies.splice(i, 1);
+                    if (checkCollision(player, enemies[i])) {
+                        player.takeDamage(ENEMY_COLLISION_DAMAGE); playExplosionSound();
+                        for (let p = 0; p < 20; p++) particles.push(new Particle(enemies[i].x + enemies[i].width / 2, enemies[i].y + enemies[i].height / 2, Math.random() * 4 + 1, `hsl(${Math.random() * 60}, 100%, 50%)`, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 30));
+                        enemies.splice(i, 1);
+                        if (player.health <= 0) {
+                            playExplosionSound();
+                            for (let p = 0; p < 30; p++) particles.push(new Particle(player.x + player.width / 2, player.y + player.height / 2, Math.random() * 5 + 1, `hsl(${Math.random() * 360}, 100%, 50%)`, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, 40));
+                            endGame(); return;
+                        }
+                    }
+                }
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    if (!bullets[i]) continue;
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        if (!enemies[j]) continue;
+                        if (checkCollision(bullets[i], enemies[j])) {
+                            if (enemies[j].takeDamage(bullets[i].damage)) {
+                                score += 1; scoreDisplay.textContent = score; playExplosionSound();
+                                for (let p = 0; p < 20; p++) particles.push(new Particle(enemies[j].x + enemies[j].width / 2, enemies[j].y + enemies[j].height / 2, Math.random() * 4 + 1, `hsl(${Math.random() * 60}, 100%, 50%)`, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 30));
+                                if (Math.random() < POWER_UP_DROP_CHANCE) {
+                                    const rand = Math.random(); let type;
+                                    if (rand < 0.33) type = 'rapidFire';
+                                    else if (rand < 0.66) type = 'shield';
+                                    else type = 'damageUp';
+                                    powerUps.push(new PowerUp(enemies[j].x + enemies[j].width / 2 - 12, enemies[j].y + enemies[j].height / 2 - 12, type));
+                                }
+                                enemies.splice(j, 1);
+                            }
+                            bullets.splice(i, 1); break;
+                        }
+                    }
+                }
+            }
+
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                if (!enemyBullets[i]) continue; enemyBullets[i].update();
+                if (enemyBullets[i].y > canvas.height) enemyBullets.splice(i, 1);
+                if (checkCollision(player, enemyBullets[i])) {
+                    player.takeDamage(enemyBullets[i].damage); enemyBullets.splice(i, 1);
+                    if (player.health <= 0) {
+                        playExplosionSound();
+                        for (let p = 0; p < 30; p++) particles.push(new Particle(player.x + player.width / 2, player.y + player.height / 2, Math.random() * 5 + 1, `hsl(${Math.random() * 360}, 100%, 50%)`, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, 40));
+                        endGame(); return;
+                    }
+                }
+            }
+
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                if (!powerUps[i]) continue; powerUps[i].update();
+                if (powerUps[i].y > canvas.height) powerUps.splice(i, 1);
+                if (checkCollision(player, powerUps[i])) {
+                    playPowerUpSound();
+                    if (powerUps[i].type === 'rapidFire') player.activateRapidFire(POWER_UP_DURATION);
+                    else if (powerUps[i].type === 'shield') player.activateShieldPowerUp(POWER_UP_DURATION);
+                    else if (powerUps[i].type === 'damageUp') player.increaseDamage(1);
+                    powerUps.splice(i, 1);
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                if (!particles[i]) continue; particles[i].update();
+                if (particles[i].life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0a0a2a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(star => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            });
+
+            player.draw();
+            bullets.forEach(bullet => bullet.draw());
+            if (bossActive && boss) boss.draw(); else enemies.forEach(enemy => enemy.draw());
+            enemyBullets.forEach(bullet => bullet.draw());
+            powerUps.forEach(powerUp => powerUp.draw());
+            particles.forEach(particle => particle.draw());
+        }
+
+        let animationFrameId; // Variável para armazenar o ID do frame de animação
+
+        function gameLoop() {
+            if (!gameRunning || isPaused) {
+                // Se o jogo não estiver rodando ou estiver pausado, não chame requestAnimationFrame
+                return;
+            }
+            update();
+            draw();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
 
         function endGame() {
-            // Para o jogo
-            if (game && game.scene.isActive('default')) { // Verifica se a cena está ativa antes de pausar
-                game.scene.pause('default'); // Pausa a cena atual
-            }
-            isPaused = true;
-            if (spawnEnemyEvent) { // Verifica se o evento existe antes de destruir
-                spawnEnemyEvent.destroy(); // Garante que o spawn pare
-                spawnEnemyEvent = null; // Limpa a referência
-            }
-            Tone.Transport.stop(); // Para a música
-
-            // Mostra a tela de Game Over HTML
-            document.getElementById('finalScore').textContent = score;
-            document.getElementById('gameOverScreen').style.display = 'flex';
+            gameRunning = false;
+            clearInterval(spawnEnemyInterval);
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'flex'; // Usar flex para centralizar
             playGameOverSound();
-        }
-        Phaser.Scene.prototype.endGame = endGame;
-
-
-        // --- Helper functions to update UI elements (globally accessible) ---
-        // Estas funções agora são métodos da cena para acessar as propriedades da UI diretamente
-        function updatePlayerHealthDisplay(health, maxHealth) {
-            console.log('Updating player health display. Health:', health, 'Max Health:', maxHealth); // LOG
-            healthText.setText(`Vida: ${Math.max(0, Math.floor(health))}`); // Garante que seja um número inteiro não-negativo
-            const healthPercentage = Number(health) / Number(maxHealth); // Garante que sejam números
-            // A largura total da barra de saúde é 100px (definida no CSS e no retângulo Phaser)
-            this.healthBarFill.width = 100 * healthPercentage;
-            this.healthBarFill.fillColor = (health <= 20 ? 0xe53e3e : 0x48bb78);
-            // Ajusta a posição X para que a barra preencha da esquerda para a direita
-            this.healthBarFill.x = (config.width - 70) - (100 - this.healthBarFill.width) / 2;
-        }
-        Phaser.Scene.prototype.updatePlayerHealthDisplay = updatePlayerHealthDisplay;
-
-
-        function updatePlayerShieldDisplay(shield, maxShield) {
-            shieldText.setText(`Escudo: ${Math.max(0, Math.floor(shield))}`); // Garante que seja um número inteiro não-negativo
-            const shieldPercentage = Number(shield) / Number(maxShield); // Garante que sejam números
-            // A largura total da barra de escudo é 100px
-            this.shieldBarFill.width = 100 * shieldPercentage;
-            this.shieldBarFill.fillColor = 0x667eea; // Cor do escudo
-            // Ajusta a posição X para que a barra preencha da esquerda para a direita
-            this.shieldBarFill.x = (config.width - 70) - (100 - this.shieldBarFill.width) / 2;
-        }
-        Phaser.Scene.prototype.updatePlayerShieldDisplay = updatePlayerShieldDisplay;
-
-
-        function updatePlayerPowerUpStatusDisplay(rapidFireActive, shieldActive, bulletDamage) {
-            let statusText = [];
-            if (rapidFireActive) statusText.push('Tiro Rápido');
-            if (shieldActive) statusText.push('Escudo');
-            // Acessa PLAYER_BASE_BULLET_DAMAGE do contexto da cena
-            if (Number(bulletDamage) > Number(this.PLAYER_BASE_BULLET_DAMAGE)) statusText.push(`Dano +${Number(bulletDamage) - Number(this.PLAYER_BASE_BULLET_DAMAGE)}`); // Garante que sejam números
-            powerUpStatusText.setText(`Power-up: ${statusText.length === 0 ? 'Nenhum' : statusText.join(', ')}`);
-            damageText.setText(`Dano: ${Number(bulletDamage)}`); // Garante que seja número
-        }
-        Phaser.Scene.prototype.updatePlayerPowerUpStatusDisplay = updatePlayerPowerUpStatusDisplay;
-
-
-        // --- Event Listeners para botões HTML (fora do Phaser) ---
-
-        document.getElementById('startButton').addEventListener('click', () => {
-            // Inicia o contexto de áudio do Tone.js no clique do botão
-            Tone.start().then(() => {
-                // Inicia a cena do jogo. A instância 'game' já deve estar criada em window.onload.
-                if (game) {
-                    game.scene.start('default');
-                } else {
-                    console.error("Game instance not found. This should not happen if window.onload executed correctly.");
-                }
-                
-                // Agora backgroundMusic deve estar definido
-                if (gameSettings.backgroundMusicEnabled && backgroundMusic) { 
-                    backgroundMusic.start(0);
-                    Tone.Transport.start();
-                }
-            });
-        });
-
-        document.getElementById('settingsButton').addEventListener('click', () => {
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('settingsScreen').style.display = 'flex';
-        });
-
-        document.getElementById('backToStartButton').addEventListener('click', () => {
-            document.getElementById('settingsScreen').style.display = 'none';
-            document.getElementById('startScreen').style.display = 'flex';
-        });
-
-        document.getElementById('resumeButton').addEventListener('click', () => {
-            const scene = game.scene.getScene('default');
-            if (scene && scene.scene.isPaused()) {
-                togglePause(); // Usa a função de toggle para despausar
+            Tone.Transport.stop();
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId); // Cancela o loop de animação
+                animationFrameId = null; // Reseta o ID
             }
+        }
+
+        // Eventos de controle
+        // A lógica de detecção de mobile e atribuição de eventos é feita uma vez no início.
+        // A visibilidade do botão de pausa é controlada em startGame().
+        if (isMobile()) {
+            canvas.addEventListener('touchstart', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            pauseButton.addEventListener('click', togglePause);
+        } else {
+            canvas.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('keydown', handleKeyDown);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (gameRunning && player && !isPaused) {
+                const rect = canvas.getBoundingClientRect();
+                const touchX = e.touches[0].clientX - rect.left;
+                const touchY = e.touches[0].clientY - rect.top;
+
+                player.x = touchX - player.width / 2;
+                player.y = touchY - player.height / 2;
+
+                if (player.x < 0) player.x = 0;
+                if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+                if (player.y < 0) player.y = 0;
+                if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (gameRunning && player && !isPaused) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                player.x = mouseX - player.width / 2;
+                player.y = mouseY - player.height / 2;
+
+                if (player.x < 0) player.x = 0;
+                if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+                if (player.y < 0) player.y = 0;
+                if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+            }
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === ' ' || e.key === 'Escape') {
+                togglePause();
+            }
+        }
+
+        restartButton.addEventListener('click', () => {
+            currentStage = 1; startGame();
         });
-
-        document.getElementById('restartButton').addEventListener('click', () => {
-            // Resetar score e currentStage apenas no Game Over
-            score = 0;
-            currentStage = 1;
-
-            // Inicia o contexto de áudio do Tone.js no clique do botão de restart
-            Tone.start().then(() => {
-                // Reinicia a cena do jogo. Isso chamará init() e create() novamente, que reinicializa tudo.
-                if (game) {
-                    game.scene.start('default');
-                } else {
-                    console.error("Game instance not found on restart. This should not happen.");
-                }
-
-                // Esconde todas as telas de sobreposição
-                document.getElementById('gameOverScreen').style.display = 'none';
-                document.getElementById('startScreen').style.display = 'none';
-                document.getElementById('settingsScreen').style.display = 'none';
-                document.getElementById('pauseScreen').style.display = 'none';
-
-                // Agora backgroundMusic deve estar definido
-                if (gameSettings.backgroundMusicEnabled && backgroundMusic) { 
-                    backgroundMusic.start(0);
-                    Tone.Transport.start();
-                }
-            });
+        startButton.addEventListener('click', startGame);
+        settingsButton.addEventListener('click', () => {
+            startScreen.style.display = 'none'; settingsScreen.style.display = 'flex';
         });
-
-        document.getElementById('toggleShotSounds').addEventListener('change', (e) => {
-            gameSettings.shotSoundsEnabled = e.target.checked;
+        backToStartButton.addEventListener('click', () => {
+            settingsScreen.style.display = 'none'; startScreen.style.display = 'flex';
         });
+        resumeButton.addEventListener('click', togglePause); // Botão de continuar na tela de pausa
 
-        document.getElementById('toggleBackgroundMusic').addEventListener('change', (e) => {
+        toggleShotSounds.addEventListener('change', (e) => { gameSettings.shotSoundsEnabled = e.target.checked; });
+        toggleBackgroundMusic.addEventListener('change', (e) => {
             gameSettings.backgroundMusicEnabled = e.target.checked;
             if (gameSettings.backgroundMusicEnabled) {
-                if (Tone.context.state === 'running' && backgroundMusic) { 
-                    backgroundMusic.start(0);
-                    Tone.Transport.start();
-                }
+                if (Tone.context.state === 'running') { backgroundMusic.start(0); Tone.Transport.start(); }
             } else {
-                if (backgroundMusic) { 
-                    backgroundMusic.stop(); // Usa backgroundMusic.stop() para o loop
-                }
+                backgroundMusic.stop();
             }
         });
 
-        // --- Função de pausa global ---
-        function togglePause() {
-            const scene = game.scene.getScene('default'); // Pega a cena atual
-            if (!scene) return; // Garante que a cena exista
-
-            if (isPaused) {
-                scene.scene.resume(); // Retoma a cena Phaser
-                document.getElementById('pauseScreen').style.display = 'none';
-                // Só reinicia o spawn se não estiver em boss fight e o evento não estiver ativo
-                if (!bossActive && !spawnEnemyEvent) {
-                    spawnEnemyEvent = scene.time.addEvent({
-                        delay: scene.ENEMY_SPAWN_INTERVAL, // Usando scene.ENEMY_SPAWN_INTERVAL
-                        callback: scene.spawnEnemy, // Usando scene.spawnEnemy
-                        callbackScope: scene,
-                        loop: true
-                    });
-                }
-                if (gameSettings.backgroundMusicEnabled && backgroundMusic) { 
-                    Tone.Transport.start();
-                }
-            } else {
-                scene.scene.pause(); // Pausa a cena Phaser
-                document.getElementById('pauseScreen').style.display = 'flex';
-                if (spawnEnemyEvent) { // Verifica se o evento existe antes de destruir
-                    spawnEnemyEvent.destroy(); // Destroi o evento de spawn
-                    spawnEnemyEvent = null; // Limpa a referência
-                }
-                Tone.Transport.pause();
-            }
-            isPaused = !isPaused;
-        }
-
-        // --- Detecção de dispositivo (mobile vs. desktop) ---
-        const isMobile = () => {
-            return ('ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0);
-        };
-
-        // --- Inicialização ---
         window.onload = function() {
-            // Cria o container do jogo que o Phaser usará
-            const gameContainer = document.createElement('div');
-            gameContainer.id = 'game-container';
-            gameContainer.className = 'game-wrapper'; // Mantém a classe se houver outros estilos para ela
-            document.body.appendChild(gameContainer);
-
-            // Move as telas de overlay HTML para dentro do gameContainer
-            const overlays = ['startScreen', 'settingsScreen', 'pauseScreen', 'gameOverScreen'];
-            overlays.forEach(id => {
-                const screen = document.getElementById(id);
-                if (screen) {
-                    gameContainer.appendChild(screen);
-                }
-            });
-
-            // Garante que apenas a tela de início seja visível inicialmente
-            document.getElementById('startScreen').style.display = 'flex';
-            document.getElementById('settingsScreen').style.display = 'none';
-            document.getElementById('pauseScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'none';
-
-            initSounds(); // Inicializa todos os objetos de som do Tone.js aqui
-
-            // Cria a instância do jogo Phaser aqui, após a definição da configuração.
-            game = new Phaser.Game(config);
+            // initSounds() será chamado dentro de startGame() após o Tone.start()
         };
     </script>
 </body>
