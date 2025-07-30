@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- MELHORIA: Adiciona meta tag para uma melhor experiência em mobile -->
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Space Shooter: Boss Fight</title>
-    <!-- CORREÇÃO: Voltando a usar o arquivo local do Phaser -->
     <script src="phaser.min.js"></script>
     <style>
         /* --- Configurações Globais --- */
@@ -33,15 +34,15 @@
         #game-container {
             position: relative;
             width: 100vw;
-            height: 100vh;
-            cursor: none;
+            /* MELHORIA: Altura agora é controlada por JavaScript para precisão */
+            /* height: 100vh; */ 
+            cursor: default; 
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: var(--dark-royal-blue); /* Fundo para o modo tela cheia */
+            background-color: var(--dark-royal-blue);
         }
 
-        /* Garante que o container ocupe toda a tela no modo fullscreen */
         #game-container:fullscreen {
             width: 100%;
             height: 100%;
@@ -59,16 +60,13 @@
         
         /* --- UI Arcade --- */
         #game-ui {
-            /* CORREÇÃO: A UI agora é posicionada por JS para alinhar com o canvas */
             position: absolute;
-            pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             padding: clamp(10px, 2.5vw, 25px); 
             box-sizing: border-box;
             z-index: 10;
-            /* A UI não deve interceptar cliques, exceto os botões */
             pointer-events: none;
         }
 
@@ -263,6 +261,7 @@
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
             z-index: 100;
+            pointer-events: all; /* Permite cliques nos overlays */
         }
 
         .overlay-panel {
@@ -392,7 +391,6 @@
                     </div>
                     <div class="stats-icons-container">
                         <div class="stat-item">
-                            <!-- CORREÇÃO: Voltando para o caminho local do asset -->
                             <img id="damage-icon" class="stat-icon-img" src="Damage_Bonus.png" alt="Damage Icon"/>
                             <span class="value" id="damage-value">1</span>
                         </div>
@@ -413,43 +411,42 @@
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Telas de Overlay -->
-        <div id="start-screen" class="overlay-screen" style="visibility: visible; opacity: 1;">
-            <div class="overlay-panel">
-                <h1 id="start-title" class="overlay-title">SPACE SHOOTER</h1>
-                <button id="start-game-button" class="overlay-button">INICIAR JOGO</button>
-            </div>
-        </div>
 
-        <div id="game-over-screen" class="overlay-screen">
-            <div id="game-over-panel" class="overlay-panel">
-                <h1 id="game-over-title" class="overlay-title">GAME OVER</h1>
-                <div id="final-score-label">SCORE FINAL</div>
-                <div id="final-score-value">0</div>
-                <div id="ranking-container">
-                    <h2 id="ranking-title">TOP 5</h2>
-                    <ol id="ranking-list"></ol>
+            <!-- Telas de Overlay -->
+            <div id="start-screen" class="overlay-screen" style="visibility: visible; opacity: 1;">
+                <div class="overlay-panel">
+                    <h1 id="start-title" class="overlay-title">SPACE SHOOTER</h1>
+                    <button id="start-game-button" class="overlay-button">INICIAR JOGO</button>
                 </div>
-                <button id="restart-button" class="overlay-button">REINICIAR</button>
             </div>
-        </div>
-        
-        <div id="stage-clear-screen" class="overlay-screen">
-            <div id="stage-clear-panel" class="overlay-panel">
-                <h1 id="stage-clear-title" class="overlay-title">STAGE CLEAR!</h1>
-                <button id="next-stage-button" class="overlay-button">PROSSEGUIR</button>
-            </div>
-        </div>
-        
-        <div id="pause-screen" class="overlay-screen">
-            <div id="pause-panel" class="overlay-panel">
-                <h1 id="pause-title" class="overlay-title">PAUSADO</h1>
-                <button id="resume-button" class="overlay-button">RETOMAR</button>
-            </div>
-        </div>
 
+            <div id="game-over-screen" class="overlay-screen">
+                <div id="game-over-panel" class="overlay-panel">
+                    <h1 id="game-over-title" class="overlay-title">GAME OVER</h1>
+                    <div id="final-score-label">SCORE FINAL</div>
+                    <div id="final-score-value">0</div>
+                    <div id="ranking-container">
+                        <h2 id="ranking-title">TOP 5</h2>
+                        <ol id="ranking-list"></ol>
+                    </div>
+                    <button id="restart-button" class="overlay-button">REINICIAR</button>
+                </div>
+            </div>
+            
+            <div id="stage-clear-screen" class="overlay-screen">
+                <div id="stage-clear-panel" class="overlay-panel">
+                    <h1 id="stage-clear-title" class="overlay-title">STAGE CLEAR!</h1>
+                    <button id="next-stage-button" class="overlay-button">PROSSEGUIR</button>
+                </div>
+            </div>
+            
+            <div id="pause-screen" class="overlay-screen">
+                <div id="pause-panel" class="overlay-panel">
+                    <h1 id="pause-title" class="overlay-title">PAUSADO</h1>
+                    <button id="resume-button" class="overlay-button">RETOMAR</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -511,12 +508,21 @@
             }
         };
 
+        // MELHORIA: Função para ajustar o tamanho do contêiner principal
+        function resizeGameContainer() {
+            const container = document.getElementById('game-container');
+            container.style.height = `${window.innerHeight}px`;
+        }
+
+        // Ajusta o tamanho ao carregar e ao redimensionar a janela
+        window.addEventListener('resize', resizeGameContainer);
+        resizeGameContainer(); // Chamada inicial
+
         const game = new Phaser.Game(config);
 
         // --- Funções Principais do Phaser ---
 
         function preload() {
-            // CORREÇÃO: Voltando a usar caminhos locais para os assets
             this.load.image('player_sprite', 'player1.png');
             this.load.image('enemy1_sprite', 'enemy1.png');
             this.load.image('boss_sprite', 'boss.png'); 
@@ -543,12 +549,10 @@
             setupInput.call(this);
             setupCollisions.call(this);
 
-            // NOVO: Lógica para sincronizar a UI com o Canvas
             const uiContainer = document.getElementById('game-ui');
             const canvas = this.sys.game.canvas;
 
             const updateUiPosition = () => {
-                // Adicionado um pequeno delay para garantir que o DOM foi atualizado
                 setTimeout(() => {
                     const bounds = canvas.getBoundingClientRect();
                     if (bounds.width > 0 && bounds.height > 0) {
@@ -559,14 +563,17 @@
                     }
                 }, 50); 
             };
+            
+            // MELHORIA: A função de ajuste do contêiner também chama o ajuste da UI
+            const fullResize = () => {
+                resizeGameContainer();
+                updateUiPosition();
+            }
 
-            // Chamada inicial e nos eventos de redimensionamento
-            updateUiPosition();
-            this.scale.on('resize', updateUiPosition);
-            document.addEventListener('fullscreenchange', updateUiPosition);
+            fullResize();
+            this.scale.on('resize', fullResize);
+            document.addEventListener('fullscreenchange', fullResize);
 
-
-            // Pausa o jogo no início
             this.physics.pause();
             this.time.paused = true;
         }
@@ -656,6 +663,7 @@
             
             document.getElementById('start-game-button').addEventListener('click', () => startGame.call(this));
             document.getElementById('restart-button').addEventListener('click', () => {
+                updateCursorVisibility(false);
                 document.getElementById('game-over-screen').style.opacity = '0';
                 document.getElementById('game-over-screen').style.visibility = 'hidden';
                 resetGameVariables();
@@ -1090,6 +1098,7 @@
         // --- Funções de Lógica do Jogo ---
 
         function startGame() {
+            updateCursorVisibility(false);
             const startScreen = document.getElementById('start-screen');
             startScreen.style.opacity = '0';
             startScreen.style.visibility = 'hidden';
@@ -1161,6 +1170,7 @@
         }
 
         function endBossFight() {
+            updateCursorVisibility(true);
             this.physics.pause();
             meteorSpawnTimer.paused = true;
             
@@ -1172,6 +1182,7 @@
         }
 
         function startNextStage() {
+            updateCursorVisibility(false);
             const screen = document.getElementById('stage-clear-screen');
             screen.style.visibility = 'hidden';
             screen.style.opacity = '0';
@@ -1315,6 +1326,7 @@
 
         function gameOver() {
             if (!player.active) return;
+            updateCursorVisibility(true);
             player.setActive(false);
             this.physics.pause();
             this.time.pause();
@@ -1351,6 +1363,7 @@
         function togglePause() {
             if (!isGameStarted) return; 
             isPaused = !isPaused;
+            updateCursorVisibility(isPaused); // Mostra/esconde o cursor
             const pauseScreen = document.getElementById('pause-screen');
             if (isPaused) {
                 this.scene.pause();
@@ -1417,7 +1430,10 @@
             }
         }
 
-        // Funções para controlar a Tela Cheia (Fullscreen)
+        function updateCursorVisibility(show) {
+            document.getElementById('game-container').style.cursor = show ? 'default' : 'none';
+        }
+
         function toggleApiFullscreen(forceEnter = false) {
             const container = document.getElementById('game-container');
             const isFullscreen = !!document.fullscreenElement;
