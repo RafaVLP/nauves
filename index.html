@@ -1,1373 +1,1465 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Space Shooter: Boss Fight</title>
-    <!-- Certifique-se de que o arquivo phaser.min.js (v3.80.1 ou superior) está na mesma pasta -->
-    <script src="phaser.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Invasão Espacial - Phaser</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <style>
-        /* --- Configurações Globais --- */
-        :root {
-            --ui-blue: #00d8ff;
-            --ui-green: #00ff8c;
-            --ui-red: #ff4d4d;
-            --ui-yellow-crit: #ffc700;
-            --ui-bg-color: rgba(10, 25, 47, 0.75);
-            --ui-border-color: rgba(0, 216, 255, 0.5);
-            /* MUDANÇA: Fundo mais escuro */
-            --dark-royal-blue: #061021;
-        }
-
+        /* Estilos básicos para o corpo da página */
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             margin: 0;
-            background-color: var(--dark-royal-blue);
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #e0e0e0;
+            overflow: hidden; /* Evita barras de rolagem */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Garante que o corpo ocupe toda a altura da viewport */
+            background: linear-gradient(to bottom right, #1a202c, #2d3748); /* Gradiente de fundo */
+            font-family: 'Inter', sans-serif; /* Fonte moderna */
+            color: #e2e8f0; /* Cor do texto */
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none; /* Safari */
+            -khtml-user-select: none; /* Konqueror HTML */
+            -moz-user-select: none; /* Old versions of Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
         }
 
+        /* Estilos para o container do jogo (onde o Phaser injeta o canvas) */
         #game-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            max-width: 450px;
-            max-height: 800px;
-            cursor: none;
+            position: relative; /* Necessário para o posicionamento absoluto das telas de overlay */
+            width: 450px; /* Largura base do jogo */
+            height: 800px; /* Altura base do jogo */
+            border: 4px solid #4a5568;
+            border-radius: 1.5rem;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.7), 0 0 15px rgba(0, 255, 255, 0.5) inset;
+            overflow: hidden; /* Garante que o conteúdo não transborde */
+            display: flex; /* Para centralizar o canvas dentro dele */
+            justify-content: center;
+            align-items: center;
+            background-color: #000; /* Fundo do jogo */
+            /* Adicionado para responsividade no container */
+            max-width: 98vw;
+            max-height: 90vh;
         }
 
+        /* O canvas do Phaser será dimensionado para preencher o game-container */
         canvas {
-            border-radius: 15px;
-            box-shadow: 0 0 25px rgba(0, 216, 255, 0.6);
-            border: 2px solid var(--ui-blue);
-        }
-        
-        /* --- Nova UI Arcade --- */
-        #game-ui {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 15px;
-            box-sizing: border-box;
+            display: block; /* Remove espaços extras */
+            width: 100%; /* Preenche a largura do container */
+            height: 100%; /* Preenche a altura do container */
+            /* Remove estilos de borda e sombra diretamente do canvas, pois já estão no container */
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
         }
 
-        .ui-top, .ui-bottom {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            position: relative;
-        }
-        
-        /* MUDANÇA: Ajustes no layout da UI inferior */
-        .ui-bottom {
-            align-items: flex-end;
-        }
-
-        .info-panel {
-            background: var(--ui-bg-color);
-            border: 1px solid var(--ui-border-color);
-            padding: 5px 15px;
-            color: white;
-            font-weight: 700;
-            backdrop-filter: blur(5px);
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 75%);
-        }
-        
-        .info-panel.right {
-             clip-path: polygon(0 0, 100% 0, 100% 75%, 95% 100%, 0 100%);
-             text-align: right;
-        }
-
-        .info-panel .label {
-            font-size: 0.8em;
-            color: var(--ui-blue);
-            opacity: 0.8;
-        }
-
-        .info-panel .value {
-            font-size: 1.4em;
-            text-shadow: 0 0 5px var(--ui-green);
-        }
-
-        /* --- Barra de Vida do Chefe --- */
-        #boss-health-container {
-            position: absolute;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            z-index: 50;
-        }
-
-        .boss-health-label {
-            font-size: 1em;
-            font-weight: 700;
-            color: var(--ui-red);
-            text-shadow: 0 0 8px var(--ui-red);
-        }
-
-        .boss-health-bar-background {
-            width: 100%;
-            height: 20px;
-            background-color: var(--ui-bg-color);
-            border: 2px solid var(--ui-red);
-            border-radius: 5px;
-            padding: 2px;
-        }
-
-        #boss-health-bar-fill {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #ff4500, var(--ui-red));
-            border-radius: 3px;
-            transition: width 0.2s ease-out;
-        }
-        
-        .player-stats-panel {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            /* MUDANÇA: Ajusta a largura para não sobrepor os botões */
-            width: calc(100% - 100px); 
-            pointer-events: auto;
-        }
-
-        .bars-container {
-            position: relative;
-            width: 100%;
-            height: 25px;
-            margin-bottom: 10px;
-        }
-        
-        .progress-bar-background {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-color: var(--ui-bg-color);
-            border: 1px solid var(--ui-border-color);
-            clip-path: polygon(0 5px, 5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px));
-            backdrop-filter: blur(5px);
-        }
-        
-        .progress-bar-fill {
-            height: 100%;
-            transition: width 0.2s ease-out;
-            position: relative;
-            clip-path: polygon(0 5px, 5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px));
-        }
-
-        #health-bar-fill {
-            background: linear-gradient(90deg, var(--ui-red), #ff7878);
-        }
-        
-        #shield-bar-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 0%;
-            height: 5px;
-            background-color: var(--ui-blue);
-            box-shadow: 0 0 8px var(--ui-blue);
-            border-radius: 2px;
-            transition: width 0.2s ease-out, opacity 0.3s ease-in-out;
-            opacity: 0;
-        }
-        
-        .bar-text {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 0.9em;
-            font-weight: 700;
-            color: white;
-            text-shadow: 1px 1px 2px black;
-        }
-
-        .stats-icons-container {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-        }
-
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--ui-bg-color);
-            border: 1px solid var(--ui-border-color);
-            padding: 5px 12px;
-            border-radius: 5px;
-            backdrop-filter: blur(5px);
-        }
-        
-        .stat-icon-img {
-            width: 24px;
-            height: 24px;
-        }
-        
-        .stat-item .value {
-            font-size: 1.2em;
-            font-weight: 700;
-            color: var(--ui-green);
-        }
-
-        #shield-timer-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--ui-bg-color);
-            border: 1px solid var(--ui-border-color);
-            padding: 5px 12px;
-            border-radius: 5px;
-            backdrop-filter: blur(5px);
-            width: 70px;
-            justify-content: center;
-        }
-        
-        #shield-timer {
-            font-size: 1.2em;
-            font-weight: 700;
-            color: var(--ui-blue);
-            text-shadow: 0 0 5px var(--ui-blue);
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-        }
-        #shield-timer-icon {
-             width: 24px;
-             height: 24px;
-             opacity: 0.5;
-        }
-        
-        /* Telas de Overlay */
+        /* Estilos para as telas de sobreposição (menus, game over) */
         .overlay-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.95);
             display: flex;
-            justify-content: center;
-            align-items: center;
             flex-direction: column;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.5s, visibility 0.5s;
-            backdrop-filter: blur(5px);
-            z-index: 100;
-        }
-
-        .overlay-panel {
-            background: var(--ui-bg-color);
-            border: 2px solid var(--ui-border-color);
-            padding: 30px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 0 20px var(--ui-blue);
-        }
-
-        .overlay-title {
-            font-size: 3em;
-            font-weight: 700;
-            margin: 0;
-        }
-
-        #game-over-title { color: var(--ui-red); text-shadow: 0 0 10px var(--ui-red); }
-        #stage-clear-title { color: var(--ui-green); text-shadow: 0 0 10px var(--ui-green); }
-        #pause-title { color: var(--ui-blue); text-shadow: 0 0 10px var(--ui-blue); }
-
-        #final-score-label {
-            font-size: 1.2em;
-            color: var(--ui-blue);
-            margin-top: 20px;
-        }
-
-        #final-score-value {
-            font-size: 2.5em;
-            color: var(--ui-green);
-            text-shadow: 0 0 8px var(--ui-green);
-        }
-
-        .overlay-button {
-            margin-top: 30px;
-            padding: 10px 30px;
-            font-size: 1.2em;
-            font-weight: 700;
-            color: #0a192f;
-            background-color: var(--ui-blue);
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            pointer-events: all;
-            transition: background-color 0.2s, box-shadow 0.2s;
-        }
-        .overlay-button:hover {
-            background-color: #fff;
-            box-shadow: 0 0 15px #fff;
-        }
-        
-        /* Ranking */
-        #ranking-container { margin-top: 25px; }
-        #ranking-title { font-size: 1.5em; color: var(--ui-blue); margin-bottom: 10px; }
-        #ranking-list { list-style: none; padding: 0; margin: 0; }
-        #ranking-list li { font-size: 1.1em; padding: 2px 0; }
-
-        /* MUDANÇA: Botões de Controle (Pause/Fullscreen) */
-        .control-button-container {
-            width: 45px; /* Garante espaço para o botão */
-            pointer-events: auto;
-        }
-        .control-button {
-            width: 40px;
-            height: 40px;
-            background-color: var(--ui-bg-color);
-            border: 1px solid var(--ui-border-color);
-            border-radius: 50%;
-            display: flex;
             justify-content: center;
             align-items: center;
-            cursor: pointer;
+            text-align: center;
+            font-size: 2.8rem;
+            color: #e2e8f0;
+            z-index: 100;
+            padding: 1rem;
+            /* As telas de overlay devem ter o mesmo border-radius que o game-container */
+            border-radius: 1.5rem;
         }
-        .control-button svg { width: 20px; height: 20px; fill: var(--ui-blue); }
 
+        .overlay-screen h2 {
+            margin-bottom: 1.5rem;
+            color: #fff;
+            font-size: 3.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+
+        .overlay-screen p {
+            font-size: 1.8rem;
+            margin-bottom: 2.5rem;
+            color: #cbd5e0;
+        }
+
+        .overlay-screen button {
+            background: linear-gradient(to right, #48bb78, #38a169);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0.75rem;
+            box-shadow: 0 5px 15px rgba(0, 128, 0, 0.4);
+        }
+
+        .overlay-screen button:hover {
+            background: linear-gradient(to right, #38a169, #2f855a);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 128, 0, 0.6);
+        }
+        .overlay-screen button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 128, 0, 0.4);
+        }
+
+        #gameOverScreen {
+            color: #fc8181;
+            border: 3px solid #e53e3e;
+            box-shadow: 0 0 40px rgba(255, 0, 0, 0.9);
+        }
+
+        #startScreen {
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.9);
+        }
+
+        #settingsScreen {
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.9);
+            display: none;
+        }
+
+        #settingsScreen .setting-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        #settingsScreen .setting-option input[type="checkbox"] {
+            margin-right: 1.5rem;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            accent-color: #48bb78;
+        }
+
+        #pauseScreen {
+            display: none;
+        }
+
+        /* Responsividade para telas menores */
+        @media (max-width: 768px) {
+            #game-container {
+                width: 100vw; /* Ocupa a largura total da viewport */
+                height: 100vh; /* Ocupa a altura total da viewport */
+                max-width: 100vw; /* Garante que ocupe o máximo possível */
+                max-height: 100vh; /* Garante que ocupe o máximo possível */
+                border-radius: 0; /* Remove bordas arredondadas em tela cheia */
+                box-shadow: none; /* Remove sombra em tela cheia */
+            }
+            .overlay-screen {
+                border-radius: 0; /* Remove bordas arredondadas nas telas de overlay em tela cheia */
+            }
+            .overlay-screen h2 {
+                font-size: 2rem;
+            }
+            .overlay-screen p {
+                font-size: 1rem;
+            }
+            .overlay-screen button {
+                padding: 0.5rem 1rem;
+                font-size: 1rem;
+                margin: 0.4rem;
+            }
+            #settingsScreen .setting-option {
+                font-size: 1rem;
+            }
+            #settingsScreen .setting-option input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <!-- Phaser renderiza o canvas aqui -->
-        
-        <div id="game-ui">
-            <div class="ui-top">
-                <div class="info-panel">
-                    <div class="label">SCORE</div>
-                    <div class="value" id="score-value">0</div>
-                </div>
-                <div class="info-panel right">
-                    <div class="label">STAGE / LEVEL</div>
-                    <div>
-                        <span class="value" id="stage-value">1</span>
-                        -
-                        <span class="value" id="level-value" style="font-size: 1.1em; opacity: 0.9; color: #e0e0e0;">1</span>
-                    </div>
-                </div>
-                <div id="boss-health-container">
-                    <div class="boss-health-label">BOSS</div>
-                    <div class="boss-health-bar-background">
-                        <div id="boss-health-bar-fill"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MUDANÇA: Estrutura da UI inferior para alinhar corretamente -->
-            <div class="ui-bottom">
-                <div class="control-button-container">
-                    <div id="fullscreen-button" class="control-button">
-                        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-                    </div>
-                </div>
-                
-                <div class="player-stats-panel">
-                    <div class="bars-container">
-                        <div class="progress-bar-background"></div>
-                        <div id="health-bar-fill" class="progress-bar-fill" style="width: 100%;"></div>
-                        <div id="shield-bar-overlay"></div>
-                        <div id="health-bar-text" class="bar-text"></div>
-                    </div>
-                    <div class="stats-icons-container">
-                        <div class="stat-item">
-                            <img id="damage-icon" class="stat-icon-img" src="Damage_Bonus.png" alt="Damage Icon"/>
-                            <span class="value" id="damage-value">1</span>
-                        </div>
-                        <div class="stat-item">
-                            <img id="cannons-icon" class="stat-icon-img" src="Rockets_Bonus.png" alt="Cannons Icon"/>
-                            <span class="value" id="cannons-value">1</span>
-                        </div>
-                        <div id="shield-timer-container">
-                            <img id="shield-timer-icon" class="stat-icon-img" src="Armor_Bonus.png" alt="Shield Timer Icon"/>
-                            <span id="shield-timer">30s</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="control-button-container">
-                    <div id="pause-button" class="control-button">
-                        <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div id="game-over-screen" class="overlay-screen">
-            <div id="game-over-panel" class="overlay-panel">
-                <h1 id="game-over-title" class="overlay-title">GAME OVER</h1>
-                <div id="final-score-label">SCORE FINAL</div>
-                <div id="final-score-value">0</div>
-                <div id="ranking-container">
-                    <h2 id="ranking-title">TOP 5</h2>
-                    <ol id="ranking-list"></ol>
-                </div>
-                <button id="restart-button" class="overlay-button">REINICIAR</button>
-            </div>
-        </div>
-        
-        <div id="stage-clear-screen" class="overlay-screen">
-            <div id="stage-clear-panel" class="overlay-panel">
-                <h1 id="stage-clear-title" class="overlay-title">STAGE CLEAR!</h1>
-                <button id="next-stage-button" class="overlay-button">PROSSEGUIR</button>
-            </div>
-        </div>
-        
-        <div id="pause-screen" class="overlay-screen">
-            <div id="pause-panel" class="overlay-panel">
-                <h1 id="pause-title" class="overlay-title">PAUSADO</h1>
-                <button id="resume-button" class="overlay-button">RETOMAR</button>
+        <!-- As telas de menu ainda são HTML para facilitar a interação e estilo -->
+        <div id="startScreen" class="overlay-screen">
+            <h2>Invasão Espacial</h2>
+            <p>Mova a nave arrastando o dedo na tela para se desviar e atirar!</p>
+            <div>
+                <button id="startButton">Iniciar Jogo</button>
+                <button id="settingsButton">Configurações</button>
             </div>
         </div>
 
+        <div id="settingsScreen" class="overlay-screen">
+            <h2>Configurações</h2>
+            <div class="setting-option">
+                <input type="checkbox" id="toggleShotSounds" checked>
+                <label for="toggleShotSounds">Sons de Tiro</label>
+            </div>
+            <div class="setting-option">
+                <input type="checkbox" id="toggleBackgroundMusic" checked>
+                <label for="toggleBackgroundMusic">Música de Fundo</label>
+            </div>
+            <button id="backToStartButton">Voltar</button>
+        </div>
+
+        <div id="pauseScreen" class="overlay-screen">
+            <h2>Jogo Pausado</h2>
+            <p>Pressione Espaço/Esc ou o botão de Pausa para continuar.</p>
+            <button id="resumeButton">Continuar Jogo</button>
+        </div>
+
+        <div id="gameOverScreen" class="overlay-screen">
+            <h2>Fim de Jogo!</h2>
+            <p>Sua pontuação final: <span id="finalScore">0</span></p>
+            <button id="restartButton">Jogar Novamente</button>
+        </div>
     </div>
 
     <script>
-        // --- Variáveis Globais do Jogo ---
-        let player, playerBullets, enemies, meteors, enemyBullets, bossBullets, powerUps, stars;
+        // Configurações do jogo (ainda globais para acesso pelos listeners HTML)
+        const gameSettings = {
+            shotSoundsEnabled: true,
+            backgroundMusicEnabled: true
+        };
+
+        // Sons (Tone.js) - Inicialização fora da cena Phaser para controle global
+        let playerShootSound, enemyShootSound, hitSound, powerUpSound,
+            gameOverSound, bossHitSound, bossDefeatSound, explosionSound;
+        let backgroundMusic;
+
+        // Cooldowns para sons para evitar Tone.js "Start time must be strictly greater" errors
+        let lastHitSoundTime = 0;
+        const hitSoundCooldown = 0.1; // 100ms
+
+        let lastExplosionSoundTime = 0;
+        const explosionSoundCooldown = 0.1; // 100ms
+
+
+        // Inicializa todos os objetos de som do Tone.js
+        function initSounds() {
+            playerShootSound = new Tone.Synth().toDestination(); playerShootSound.envelope.release = 0.05;
+            // Usando Tone.PolySynth para permitir múltiplos tiros de inimigo simultâneos
+            enemyShootSound = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "square" }, envelope: { release: 0.01 } }).toDestination();
+            hitSound = new Tone.NoiseSynth({ envelope: { release: 0.1 } }).toDestination();
+            powerUpSound = new Tone.PolySynth(Tone.Synth).toDestination();
+            gameOverSound = new Tone.Synth().toDestination();
+            bossHitSound = new Tone.NoiseSynth({ envelope: { release: 0.2, decay: 0.1 } }).toDestination();
+            bossDefeatSound = new Tone.PolySynth(Tone.Synth).toDestination();
+            explosionSound = new Tone.NoiseSynth({ envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 } }).toDestination();
+
+            backgroundMusic = new Tone.Loop(time => {
+                const synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.5, decay: 0.5, sustain: 0.8, release: 1 }
+                }).toDestination();
+                synth.triggerAttackRelease(["C3", "E3", "G3", "B3"], "2n", time);
+            }, "4m");
+        }
+
+        function playPlayerShootSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) playerShootSound.triggerAttackRelease("C5", "8n"); }
+        // Agora usa triggerAttackRelease do PolySynth para o tiro do inimigo
+        function playEnemyShootSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) enemyShootSound.triggerAttackRelease("C3", "8n"); }
+        function playHitSound() {
+            if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) {
+                const now = Tone.context.currentTime;
+                if (now - lastHitSoundTime > hitSoundCooldown) {
+                    hitSound.triggerAttackRelease("16n");
+                    lastHitSoundTime = now;
+                }
+            }
+        }
+        function playPowerUpSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) powerUpSound.triggerAttackRelease("C4", "8n"); }
+        function playGameOverSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) { gameOverSound.triggerAttackRelease("C3", "4n"); gameOverSound.triggerAttackRelease("G2", "4n", "+0.5"); } }
+        function playBossHitSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) bossHitSound.triggerAttackRelease("8n"); }
+        function playBossDefeatSound() { if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) bossDefeatSound.triggerAttackRelease(["C4", "F4", "A4", "C5"], "2n"); }
+        function playExplosionSound() {
+            if (Tone.context.state === 'running' && gameSettings.shotSoundsEnabled) {
+                const now = Tone.context.currentTime;
+                if (now - lastExplosionSoundTime > explosionSoundCooldown) {
+                    explosionSound.triggerAttackRelease("16n");
+                    lastExplosionSoundTime = now;
+                }
+            }
+        }
+
+        // --- Variáveis de controle de jogo (globais para a cena Phaser) ---
+        // MOVIDAS PARA FORA DO CREATE PARA PERSISTIREM ENTRE ESTÁGIOS
         let score = 0;
-        let playerHealth = 100, playerMaxHealth = 100, playerDamage = 1;
-        let extraShots = 0;
-        const MAX_EXTRA_SHOTS = 2;
-        let shieldAmount = 0, shieldDuration = 30;
-        const SHIELD_MAX_DURATION = 30, SHIELD_MAX_VALUE = 100;
-        let shieldTimerEvent;
-
-        let baseEnemyLevel = 1, currentStage = 1, scoreToNextBoss = 100;
-        let bossFightActive = false, bossObject = null;
-        
-        let enemySpawnTimer, meteorSpawnTimer;
-
-        let lightPool = [];
-        const MAX_LIGHTS = 50;
-        let explosionEmitter;
-
-        const PLAYER_SPRITE_WIDTH = 120, PLAYER_SPRITE_HEIGHT = 120;
-        const ENEMY_SPRITE_WIDTH = 120, ENEMY_SPRITE_HEIGHT = 120;
-        const BOSS_SPRITE_WIDTH = 240, BOSS_SPRITE_HEIGHT = 240;
-        const BULLET_SPRITE_WIDTH = 32, BULLET_SPRITE_HEIGHT = 32;
-        const POWERUP_SPRITE_SIZE = 24;
-
-        let scoreTextElement, baseEnemyLevelUITextElement, healthBarFillElement, 
-            healthTextElement, shieldBarOverlayElement, shieldTimerElement, 
-            damageTextElement, extraShotsTextElement, stageTextElement,
-            bossHealthContainerElement, bossHealthBarFillElement;
-        
+        let currentStage = 1;
+        let player; // Player ainda precisa ser global para acesso em listeners HTML
         let isPaused = false;
+        let bossActive = false;
+        let boss = null; // Agora 'boss' será um objeto com 'phaserObject' e dados
+        let spawnEnemyEvent; // Evento para spawn de inimigos
+        let activePowerUps = {}; // Para gerenciar power-ups acumulativos
+        
+        // --- UI Text Objects ---
+        let scoreText;
+        let damageText;
+        let healthText;
+        let shieldText;
+        let stageText;
+        let powerUpStatusText;
+        let bossHealthBarBackground; // Referência ao retângulo de fundo da barra do boss
+        let bossHealthBarFill;      // Referência ao preenchimento da barra do boss
+        let bossHealthText;         // Referência ao texto da vida do boss
 
-        // --- Configuração do Phaser ---
+        // --- Phaser Game Configuration (AGORA GLOBAL) ---
         const config = {
             type: Phaser.AUTO,
-            width: 450,
-            height: 800,
-            parent: 'game-container',
-            // MUDANÇA: Fundo mais escuro
-            backgroundColor: '#061021',
-            scale: {
-                mode: Phaser.Scale.FIT,
-                autoCenter: Phaser.Scale.CENTER_BOTH
-            },
+            width: 450, // Largura para formato mobile
+            height: 800, // Altura para formato mobile
+            parent: 'game-container', // ID do div onde o canvas será injetado
             physics: {
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 0 },
-                    debug: false 
+                    debug: true // Mude para true para ver os hitboxes - MUDAR PARA FALSE NO PROD
                 }
             },
             scene: {
+                key: 'default', // Adiciona uma chave para a cena
+                init: init, // Adiciona o método init para inicializar as constantes da cena
                 preload: preload,
                 create: create,
                 update: update
+            },
+            scale: {
+                mode: Phaser.Scale.FIT, // Ajusta o jogo para caber na tela
+                autoCenter: Phaser.Scale.CENTER_BOTH // Centraliza o jogo
+            },
+            dom: {
+                createContainer: true // Permite que o Phaser crie o container para o canvas
             }
         };
 
-        const game = new Phaser.Game(config);
+        let game; // A instância do jogo Phaser
 
-        // --- Funções Principais do Phaser ---
+        // --- Game Scene Functions ---
 
-        function preload() {
-            this.load.image('player_sprite', 'player1.png');
-            this.load.image('enemy1_sprite', 'enemy1.png');
-            this.load.image('boss_sprite', 'boss.png'); 
-            this.load.image('player_bullet_sprite', 'player_bullet.png');
-            this.load.image('enemy_bullet_sprite', 'enemy_bullet.png'); 
-            this.load.image('powerup_damage', 'Damage_Bonus.png');
-            this.load.image('powerup_health', 'HP_Bonus.png');
-            this.load.image('powerup_extraShot', 'Rockets_Bonus.png');
-            this.load.image('powerup_shield', 'Armor_Bonus.png');
-            this.load.atlas('flares', 'https://labs.phaser.io/assets/particles/flares.png', 'https://labs.phaser.io/assets/particles/flares.json');
+        // Método init da cena: Usado para inicializar propriedades da cena, incluindo constantes
+        function init() {
+            // Constantes do jogo (definidas como propriedades da cena)
+            this.NUM_STARS = 200;
+            this.STAR_SPEED = 0.5;
+            // O usuário solicitou que o tamanho da hitbox seja 800x800 e offset 100x100
+            // No entanto, o displaySize do sprite do jogador será mantido em 69x69 para visualização.
+            // Para que o sprite visual seja 69x69, mas a hitbox seja 800x800,
+            // o displaySize deve ser ajustado para o tamanho da imagem original se ela for 1024x1024,
+            // e então a hitbox ajustada.
+            // Se a imagem player.png é 1024x1024, setDisplaySize(69, 69) vai escalá-la.
+            // A hitbox será definida de acordo com a solicitação do usuário.
+            this.PLAYER_INITIAL_WIDTH = 60 * 1.15; // Mantém o display visual em 69
+            this.PLAYER_INITIAL_HEIGHT = 60 * 1.15; // Mantém o display visual em 69
+
+            this.PLAYER_BULLET_SPEED = 400; // Velocidade em pixels/segundo
+            this.PLAYER_BASE_BULLET_DAMAGE = 1;
+            this.ENEMY_BASE_SPEED = 50;
+            this.ENEMY_BASE_DAMAGE = 10;
+            this.ENEMY_BULLET_SPEED = 200;
+            this.ENEMY_SPAWN_INTERVAL = 1500;
+            this.PLAYER_FIRE_RATE = 200;
+            this.ENEMY_FIRE_RATE = 1500; // Base para cálculo da taxa de tiro do inimigo
+            this.POWER_UP_DURATION = 7000;
+            this.MAX_SHIELD = 100;
+            this.POWER_UP_DROP_CHANCE = 0.10;
+            this.SCORE_PER_ENEMY_LEVEL_UP = 30;
+            this.ENEMY_HEALTH_PER_LEVEL = 1;
+            this.ENEMY_STRENGTH_INCREASE_PER_LEVEL = 0.1;
+            this.ENEMY_COLLISION_DAMAGE = 20;
             
-            for (let i = 1; i <= 10; i++) {
-                const num = i < 10 ? `0${i}` : i;
-                this.load.image(`Meteor_${num}`, `Meteor_${num}.png`);
+            // Novas constantes do Boss
+            this.BOSS_SCORE_THRESHOLD = 20; // Pontuação para o boss aparecer
+            this.BOSS_INITIAL_HEALTH = 200; // Vida inicial do boss
+            this.BOSS_DAMAGE_MULTIPLIER = 1.5; // Dano base do boss
+            this.BOSS_SPEED_MULTIPLIER = 1.3; // Velocidade base do boss
+            this.BOSS_ENTRY_SPEED = 100; // Velocidade de entrada do boss
+            this.BOSS_COLLISION_DAMAGE = 30; // Dano de colisão do boss
+            this.STAGE_DIFFICULTY_INCREASE = 0.20; // Aumento de dificuldade por estágio
+            this.BOSS_RAGE_THRESHOLD = 0.35; // % de vida para entrar em rage
+            this.BOSS_RAGE_FIRE_RATE_MULTIPLIER = 0.7; // Multiplicador de fire rate em rage (menor = mais rápido)
+            this.BOSS_RAGE_DAMAGE_MULTIPLIER = 1.3; // Multiplicador de dano em rage
+            this.BOSS_RAGE_SPEED_MULTIPLIER = 1.3; // Multiplicador de velocidade em rage (30% mais rápido)
+
+            this.ENEMY_COLORS = [
+                0xFF0000, 0xFF4500, 0xFF8C00, 0xFFD700, 0xADFF2F,
+                0x00FF00, 0x00FFFF, 0x00BFFF, 0x8A2BE2, 0xFF00FF,
+            ];
+
+            // currentEnemyLevel e enemySpeedMultiplier são calculados com base no score atual
+            // e são usados para configurar a dificuldade dos inimigos para o estágio atual.
+            this.currentEnemyLevel = Math.floor(score / this.SCORE_PER_ENEMY_LEVEL_UP) + 1;
+            this.enemySpeedMultiplier = 1 + (this.currentEnemyLevel - 1) * this.ENEMY_STRENGTH_INCREASE_PER_LEVEL;
+            if (this.enemySpeedMultiplier > 5) { // Limita o multiplicador para não ficar insano
+                this.enemySpeedMultiplier = 5;
             }
+            console.log(`Init: currentEnemyLevel=${this.currentEnemyLevel}, enemySpeedMultiplier=${this.enemySpeedMultiplier}`);
         }
 
+        function preload() {
+            this.load.image('player', 'player.png'); // Carrega o sprite do jogador
+            this.load.image('boss1', 'boss1.png'); // Carrega o sprite do boss
+        }
+
+        // Define a função de atualização do modo raiva do boss no protótipo da cena
+        Phaser.Scene.prototype.bossUpdateRageMode = function(bossInstanceData, sceneRef) {
+            // bossInstanceData é o objeto de dados do boss (boss.health, boss.maxHealth, etc.)
+            if (bossInstanceData && !bossInstanceData.isRaging && Number(bossInstanceData.health) / Number(bossInstanceData.maxHealth) <= sceneRef.BOSS_RAGE_THRESHOLD) {
+                bossInstanceData.isRaging = true;
+                bossInstanceData.fireRate *= sceneRef.BOSS_RAGE_FIRE_RATE_MULTIPLIER;
+                bossInstanceData.damage *= sceneRef.BOSS_RAGE_DAMAGE_MULTIPLIER;
+                // Aumenta a velocidade de movimento do boss em rage
+                bossInstanceData.speedX *= sceneRef.BOSS_RAGE_SPEED_MULTIPLIER;
+                bossInstanceData.speedY *= sceneRef.BOSS_RAGE_SPEED_MULTIPLIER;
+                console.log('BOSS ENRAGED! New damage:', bossInstanceData.damage, 'New speedX:', bossInstanceData.speedX);
+            }
+        };
+
         function create() {
-            setupVisuals.call(this);
-            setupPlayer.call(this);
-            setupGroups.call(this);
-            setupUI.call(this);
-            setupTimers.call(this);
-            setupInput.call(this);
-            setupCollisions.call(this);
+            // Variáveis de controle de jogo que DEVEM ser resetadas apenas no Game Over ou início do jogo
+            // score e currentStage NÃO são resetados aqui, pois persistem entre estágios.
+            isPaused = false;
+            bossActive = false;
+            boss = null; // Garante que o boss seja null no início de cada cena
+            if (spawnEnemyEvent) {
+                spawnEnemyEvent.destroy(); // Garante que o evento anterior seja limpo
+                spawnEnemyEvent = null;
+            }
+            activePowerUps = {};
+            
+            this.cameras.main.setBackgroundColor('#0a0a2a'); // Fundo do espaço
+
+            // Adicionar estrelas (agora usando this.NUM_STARS)
+            this.stars = [];
+            for (let i = 0; i < this.NUM_STARS; i++) {
+                this.stars.push(this.add.circle(Phaser.Math.Between(0, config.width), Phaser.Math.Between(0, config.height), Phaser.Math.Between(1, 3), 0xFFFFFF, Phaser.Math.Between(50, 100) / 100));
+            }
+
+            // --- Grupos de objetos com física (AGORA PROPRIEDADES DA CENA) ---
+            this.bullets = this.physics.add.group();
+            this.enemies = this.physics.add.group();
+            this.enemyBullets = this.physics.add.group();
+            this.powerUps = this.physics.add.group();
+
+            console.log("Groups initialized. Bullets:", this.bullets.children.entries.length, "Enemies:", this.enemies.children.entries.length);
+
+
+            // --- Player ---
+            // Sempre cria um novo player ao iniciar a cena para evitar duplicação e garantir estado limpo
+            if (player) { // Se um player global existir de uma cena anterior, destrua-o
+                player.destroy();
+            }
+            player = this.physics.add.image(config.width / 2, config.height - 100, 'player')
+                .setOrigin(0.5, 0.5)
+                .setDisplaySize(this.PLAYER_INITIAL_WIDTH, this.PLAYER_INITIAL_HEIGHT) // Mantém o display visual em 69x69
+                .setCollideWorldBounds(true);
+
+            // Garante que não haja tint ou blend mode aplicado ao player
+            player.setTint(); // Remove qualquer tint
+            player.setBlendMode(Phaser.BlendModes.NORMAL); // Reseta o blend mode
+
+            // Ajusta o hitbox do player para o tamanho especificado pelo usuário
+            player.body.setSize(800, 800); // Conforme a solicitação do usuário
+            player.body.setOffset(100, 100); // Conforme a solicitação do usuário
+
+            // LOG para verificar o tamanho de exibição do player
+            console.log(`Player display size after creation: ${player.displayWidth}x${player.displayHeight}`);
+            console.log(`Player hitbox size: ${player.body.width}x${player.body.height}, offset: ${player.body.offset.x}, ${player.body.offset.y}`);
+
+
+            // Adicionar propriedades customizadas ao player (resetar para o início do estágio)
+            player.health = 100;
+            player.shield = 0;
+            player.bulletDamage = this.PLAYER_BASE_BULLET_DAMAGE;
+            player.rapidFireActive = false;
+            player.shieldActive = false;
+            player.lastShotTime = 0;
+
+            // --- UI Text Objects (Phaser) ---
+            const uiTextStyle = { fontSize: '16px', fill: '#e2e8f0', stroke: '#000', strokeThickness: 2, fontStyle: 'bold' };
+            const barLabelStyle = { fontSize: '12px', fill: '#fff', stroke: '#000', strokeThickness: 1 };
+
+            // Score e Dano (canto inferior esquerdo)
+            scoreText = this.add.text(20, config.height - 40, `Pontos: ${score}`, uiTextStyle).setOrigin(0, 0.5).setDepth(10);
+            damageText = this.add.text(20, config.height - 20, `Dano: ${player.bulletDamage}`, uiTextStyle).setOrigin(0, 0.5).setDepth(10);
+
+            // Estágio (canto superior esquerdo)
+            stageText = this.add.text(20, 40, `Estágio: ${currentStage}`, uiTextStyle).setOrigin(0, 0.5).setDepth(10);
+
+            // Health e Shield (canto superior direito)
+            // Barras de fundo
+            this.healthBarBackground = this.add.rectangle(config.width - 70, 40, 100, 15, 0x4a5568).setOrigin(0.5, 0.5).setDepth(10); // Health background
+            this.shieldBarBackground = this.add.rectangle(config.width - 70, 60, 100, 15, 0x4a5568).setOrigin(0.5, 0.5).setDepth(10); // Shield background
+
+            // Barras de preenchimento (serão atualizadas)
+            this.healthBarFill = this.add.rectangle(config.width - 70, 40, 100, 15, 0x48bb78).setOrigin(0.5, 0.5).setDepth(11);
+            this.shieldBarFill = this.add.rectangle(config.width - 70, 60, 100, 15, 0x667eea).setOrigin(0.5, 0.5).setDepth(11);
+
+            healthText = this.add.text(config.width - 70, 40, `Vida: ${player.health}`, barLabelStyle).setOrigin(0.5, 0.5).setDepth(12);
+            shieldText = this.add.text(config.width - 70, 60, `Escudo: ${player.shield}`, barLabelStyle).setOrigin(0.5, 0.5).setDepth(12);
+
+            // Power-up Status (centro inferior)
+            powerUpStatusText = this.add.text(config.width / 2, config.height - 100, `Power-up: Nenhum`, uiTextStyle).setOrigin(0.5, 0.5).setDepth(10);
+
+            // Boss Health Bar (topo central, inicialmente invisível)
+            bossHealthBarBackground = this.add.rectangle(config.width / 2, 20, 300, 25, 0x4a5568).setOrigin(0.5, 0.5).setDepth(10).setVisible(false);
+            bossHealthBarFill = this.add.rectangle(config.width / 2, 20, 300, 25, 0xe53e3e).setOrigin(0.5, 0.5).setDepth(11).setVisible(false);
+            bossHealthText = this.add.text(config.width / 2, 20, '', uiTextStyle).setOrigin(0.5, 0.5).setDepth(12).setVisible(false);
+
+
+            // --- Controles ---
+            if (isMobile()) {
+                // Controles de toque
+                this.input.on('pointermove', function (pointer) {
+                    if (isPaused) return; // Não move se estiver pausado
+                    player.x = pointer.x;
+                    player.y = pointer.y;
+                }, this);
+
+                // Botão de pausa para mobile (Phaser Graphics Object)
+                this.pauseButton = this.add.graphics({ fillStyle: { color: 0x667eea } }).setDepth(100).setInteractive(new Phaser.Geom.Circle(0, 0, 30), Phaser.Geom.Circle.Contains);
+                this.pauseButton.fillCircle(config.width - 45, config.height - 45, 30);
+                this.pauseButton.lineStyle(4, 0xFFFFFF); // Linha para o ícone
+                this.pauseButton.strokeRect(config.width - 55, config.height - 55, 10, 20); // Primeira barra
+                this.pauseButton.strokeRect(config.width - 35, config.height - 55, 10, 20); // Segunda barra
+                this.pauseButton.on('pointerdown', togglePause, this);
+            } else {
+                // Controles de mouse para desktop
+                this.input.on('pointermove', function (pointer) {
+                    if (isPaused) return; // Não move se estiver pausado
+                    player.x = pointer.x;
+                    player.y = pointer.y;
+                }, this);
+
+                // Teclas de pausa para desktop
+                this.input.keyboard.on('keydown-SPACE', togglePause, this);
+                this.input.keyboard.on('keydown-ESC', togglePause, this);
+            }
+
+            // --- Colisões (agora chamando métodos da cena e usando as novas referências) ---
+            this.physics.add.overlap(this.bullets, this.enemies, this.hitEnemy, null, this);
+            this.physics.add.overlap(player, this.enemies, this.hitPlayerByEnemy, null, this);
+            this.physics.add.overlap(player, this.enemyBullets, this.hitPlayerByEnemyBullet, null, this);
+            // Colisões com o boss serão adicionadas quando o boss for criado em startBossFight
+            this.physics.add.overlap(player, this.powerUps, this.collectPowerUp, null, this);
+
+            // Inicia o spawn de inimigos
+            spawnEnemyEvent = this.time.addEvent({
+                delay: this.ENEMY_SPAWN_INTERVAL, // Usando this.ENEMY_SPAWN_INTERVAL
+                callback: this.spawnEnemy, // Usando this.spawnEnemy
+                callbackScope: this,
+                loop: true
+            });
+            
+            // Esconde as telas de menu HTML
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('settingsScreen').style.display = 'none';
+            document.getElementById('pauseScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+
+            // Atualiza a UI inicial do jogador
+            this.updatePlayerHealthDisplay(player.health, 100); // Passa max health
+            this.updatePlayerShieldDisplay(player.shield, this.MAX_SHIELD); // Passa max shield
+            this.updatePlayerPowerUpStatusDisplay(player.rapidFireActive, player.shieldActive, player.bulletDamage);
         }
 
         function update() {
-            if (!player.active || isPaused) return;
+            if (isPaused) return;
 
-            stars.children.each(star => {
-                if (star && star.y > config.height + 10) star.destroy();
+            // Atualiza estrelas
+            this.stars.forEach(star => {
+                star.y += this.STAR_SPEED; // Usando this.STAR_SPEED
+                if (star.y > config.height) {
+                    star.y = 0;
+                    star.x = Phaser.Math.Between(0, config.width);
+                }
             });
-            
-            if (player.shieldSprite) player.shieldSprite.setPosition(player.x, player.y);
 
-            if (!bossFightActive && score >= scoreToNextBoss) {
-                 startBossFight.call(this);
-            }
-        }
-        
-        // --- Funções de Setup ---
-
-        function setupVisuals() {
-            const interFont = document.createElement('link');
-            interFont.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap';
-            interFont.rel = 'stylesheet';
-            document.head.appendChild(interFont);
-            
-            const graphics = this.add.graphics();
-            graphics.fillStyle(0xffffff, 1);
-            graphics.fillCircle(2, 2, 2);
-            graphics.generateTexture('star_particle', 4, 4);
-            graphics.fillStyle(0x00aeff, 0.5);
-            graphics.fillCircle(48, 48, 48);
-            graphics.generateTexture('shield_glow_particle', 96, 96);
-            graphics.destroy();
-
-            this.lights.enable();
-            this.lights.setAmbientColor(0x606060); 
-            
-            for (let i = 0; i < MAX_LIGHTS; i++) {
-                const light = this.lights.addLight(0, 0, 100, 0xffffff, 0).setVisible(false);
-                lightPool.push(light);
+            // Lógica de tiro do jogador
+            const currentTime = this.time.now;
+            const actualFireRate = player.rapidFireActive ? this.PLAYER_FIRE_RATE / 2 : this.PLAYER_FIRE_RATE; // Usando this.PLAYER_FIRE_RATE
+            if (currentTime - player.lastShotTime > actualFireRate) {
+                this.spawnPlayerBullet(); // Chama a função de spawn de tiro do jogador
+                player.lastShotTime = currentTime;
             }
 
-            stars = this.physics.add.group();
+            // Lógica de spawn de boss
+            // O boss só deve aparecer uma vez por estágio, e apenas quando a pontuação atinge o limite E o boss não está ativo.
+            if (score >= this.BOSS_SCORE_THRESHOLD && !bossActive && boss === null) {
+                console.log('Spawning boss: Score reached threshold and boss not active.'); // LOG
+                this.startBossFight();
+            }
 
-            explosionEmitter = this.add.particles(0, 0, 'flares', {
-                frame: [ 'yellow', 'orange' ],
-                lifespan: 1000,
-                speed: { min: 100, max: 300 },
-                scale: { start: 0.5, end: 0 },
-                gravityY: 500,
-                blendMode: 'ADD',
-                emitting: false
+            // Lógica do Boss
+            if (bossActive && boss && boss.phaserObject) { // Verifica se boss e phaserObject existem
+                if (boss.state === 'entering') {
+                    boss.phaserObject.y += this.BOSS_ENTRY_SPEED * this.game.loop.delta / 1000; // Usando this.BOSS_ENTRY_SPEED
+                    if (boss.phaserObject.y >= 100) { // Posição final de entrada
+                        boss.phaserObject.y = 100;
+                        boss.state = 'fighting';
+                        console.log('Boss finished entering, state changed to fighting.'); // LOG
+                        // Inicia o movimento oscilatório do boss
+                        boss.currentMovementDirectionX = 1; // 1 para direita, -1 para esquerda
+                        boss.currentMovementDirectionY = 1; // 1 para baixo, -1 para cima
+                        boss.movementRangeX = config.width * 0.35 / 2; // Metade da área de 35%
+                        boss.movementRangeY = config.height * 0.35 / 2; // Metade da área de 35%
+                        boss.initialX = boss.phaserObject.x;
+                        boss.initialY = boss.phaserObject.y;
+                    }
+                } else if (boss.state === 'fighting') {
+                    // Movimento oscilatório no eixo X
+                    boss.phaserObject.x += boss.speedX * boss.currentMovementDirectionX * this.game.loop.delta / 1000;
+                    if (boss.phaserObject.x > boss.initialX + boss.movementRangeX || boss.phaserObject.x < boss.initialX - boss.movementRangeX) {
+                        boss.currentMovementDirectionX *= -1;
+                    }
+
+                    // Movimento oscilatório no eixo Y
+                    boss.phaserObject.y += boss.speedY * boss.currentMovementDirectionY * this.game.loop.delta / 1000;
+                    if (boss.phaserObject.y > boss.initialY + boss.movementRangeY || boss.phaserObject.y < boss.initialY - boss.movementRangeY) {
+                        boss.currentMovementDirectionY *= -1;
+                    }
+                }
+                // Chama o método shoot do boss
+                if (boss.phaserObject.shoot) { // Verifica se o método existe no phaserObject
+                    boss.phaserObject.shoot(this, boss); // Passa a cena e o objeto de dados do boss
+                }
+                this.bossUpdateRageMode(boss, this); // Passa o objeto de dados do boss e a cena
+            }
+
+            // Remover inimigos e tiros que saem da tela
+            this.enemies.children.each(function(enemy) {
+                if (enemy.y > config.height + 50) { // Um pouco fora da tela
+                    enemy.destroy();
+                }
             });
-        }
-
-        function setupPlayer() {
-            player = this.add.sprite(config.width / 2, config.height - 100, 'player_sprite');
-            player.shieldSprite = this.add.sprite(player.x, player.y, 'shield_glow_particle')
-                .setBlendMode('ADD')
-                .setDepth(player.depth - 1)
-                .setVisible(false);
-
-            this.physics.add.existing(player);
-            player.body.setCollideWorldBounds(true);
-            
-            const playerHitboxWidth = PLAYER_SPRITE_WIDTH * 0.70;
-            const playerHitboxHeight = PLAYER_SPRITE_HEIGHT * 0.97;
-            player.body.setSize(playerHitboxWidth, playerHitboxHeight)
-                .setOffset((PLAYER_SPRITE_WIDTH - playerHitboxWidth) / 1.7, (PLAYER_SPRITE_HEIGHT - playerHitboxHeight) / 2);
-
-            player.setPipeline('Light2D');
-        }
-
-        function setupGroups() {
-            playerBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true, maxSize: 30 });
-            enemies = this.physics.add.group({ classType: Enemy, runChildUpdate: true });
-            meteors = this.physics.add.group({ classType: Meteor, runChildUpdate: true });
-            enemyBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true, maxSize: 100 });
-            bossBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true, maxSize: 100 });
-            powerUps = this.physics.add.group({ classType: PowerUp, runChildUpdate: true });
-        }
-
-        function setupUI() {
-            // Mapeamento de elementos
-            const ids = ['score-value', 'level-value', 'stage-value', 'health-bar-fill', 'health-bar-text', 'shield-bar-overlay', 'shield-timer', 'damage-value', 'cannons-value', 'boss-health-container', 'boss-health-bar-fill'];
-            [scoreTextElement, baseEnemyLevelUITextElement, stageTextElement, healthBarFillElement, healthTextElement, shieldBarOverlayElement, shieldTimerElement, damageTextElement, extraShotsTextElement, bossHealthContainerElement, bossHealthBarFillElement] = ids.map(id => document.getElementById(id));
-            
-            // Event Listeners dos botões
-            document.getElementById('restart-button').addEventListener('click', () => {
-                document.getElementById('game-over-screen').style.opacity = '0';
-                document.getElementById('game-over-screen').style.visibility = 'hidden';
-                resetGameVariables();
-                this.scene.restart();
+            this.bullets.children.each(function(bullet) {
+                if (bullet.y < -50) { // Um pouco fora da tela
+                    bullet.destroy();
+                }
             });
+            this.enemyBullets.children.each(function(bullet) {
+                if (bullet.y > config.height + 50) { // Um pouco fora da tela
+                    bullet.destroy();
+                }
+            });
+            this.powerUps.children.each(function(powerUp) {
+                if (powerUp.y > config.height + 50) {
+                    powerUp.destroy();
+                }
+            });
+
+            // Atualiza UI (já feito nas funções auxiliares, mas aqui para score e stage)
+            scoreText.setText(`Pontos: ${score}`);
+            stageText.setText(`Estágio: ${currentStage}`);
+        }
+
+        // --- Game Logic Functions (agora métodos da cena) ---
+
+        // Função auxiliar para spawn de tiro do jogador
+        function spawnPlayerBullet() {
+            // Cria um retângulo para o tiro
+            const bulletGraphic = this.add.rectangle(player.x, player.y - player.displayHeight / 2, 4, 10, 0xFFFF00); // Amarelo
+            // Habilita a física para o objeto gráfico e o adiciona ao grupo
+            this.physics.world.enable(bulletGraphic);
+            this.bullets.add(bulletGraphic); // Adiciona ao grupo de física
             
-            document.getElementById('next-stage-button').addEventListener('click', () => startNextStage.call(this));
-            document.getElementById('resume-button').addEventListener('click', () => togglePause.call(this));
-            document.getElementById('pause-button').addEventListener('click', () => togglePause.call(this));
-            document.getElementById('fullscreen-button').addEventListener('click', () => this.scale.startFullscreen());
+            // Define explicitamente o tamanho e o offset do corpo de física do tiro
+            bulletGraphic.body.setSize(4, 10);
+            bulletGraphic.body.setOffset(-2, -5); // Offset para centralizar o hitbox no gráfico (origem do gráfico é o centro)
+            bulletGraphic.body.enable = true; // Garante que o corpo de física esteja ativo
+            bulletGraphic.body.active = true; // Garante que o corpo de física esteja ativo
 
-            updateUI(); 
+            bulletGraphic.body.setVelocityY(-this.PLAYER_BULLET_SPEED); // Usando this.PLAYER_BULLET_SPEED
+            bulletGraphic.damage = Number(player.bulletDamage); // Garante que o dano seja um número
+            playPlayerShootSound();
         }
+        // Atribui a função ao contexto da cena
+        Phaser.Scene.prototype.spawnPlayerBullet = spawnPlayerBullet;
 
-        function setupTimers() {
-            this.time.addEvent({ delay: 50, callback: spawnStar, callbackScope: this, loop: true });
-            this.time.addEvent({ delay: 400, callback: firePlayerBullet, callbackScope: this, loop: true });
-            enemySpawnTimer = this.time.addEvent({ delay: 2700, callback: spawnEnemy, callbackScope: this, loop: true });
-            meteorSpawnTimer = this.time.addEvent({ delay: 6338, callback: spawnMeteor, callbackScope: this, loop: true });
-        }
 
-        function setupInput() {
-            this.input.on('pointermove', (pointer) => {
-                if (this.sys.game.device.input.touch && !pointer.isDown) return;
-                if(player.active) {
-                    this.tweens.add({
-                        targets: player,
-                        x: pointer.x,
-                        y: pointer.y,
-                        duration: 100,
-                        ease: 'Sine.easeOut'
-                    });
-                }
-            }, this);
-
-            // Pausar com a barra de espaço
-            this.input.keyboard.on('keydown-SPACE', () => togglePause.call(this));
-        }
-
-        function setupCollisions() {
-            this.physics.add.overlap(playerBullets, meteors, handlePlayerHit, null, this);
-            this.physics.add.overlap(playerBullets, enemies, handlePlayerHit, null, this);
-            
-            this.physics.add.overlap(player, meteors, hitPlayerByMeteor, null, this);
-            this.physics.add.overlap(player, enemyBullets, (p, b) => hitPlayer(p, b, this), null, this);
-            this.physics.add.overlap(player, bossBullets, (p, b) => hitPlayer(p, b, this), null, this);
-            this.physics.add.overlap(player, enemies, (p, e) => hitPlayerByEnemy(p, e, this), null, this);
-            this.physics.add.overlap(player, powerUps, collectPowerUp, null, this);
-        }
-
-        // --- Classes do Jogo ---
-
-        class Bullet extends Phaser.Physics.Arcade.Sprite {
-            constructor(scene, x, y) {
-                super(scene, x, y, null);
-                this.type = ''; this.damage = 0; this.light = null; this.bounces = 0; this.justBounced = false;
-            }
-
-            fire(x, y, vx, vy, type, damage, bounces = 0) {
-                Object.assign(this, { type, damage, bounces });
-                this.setTexture(type === 'playerBullet' ? 'player_bullet_sprite' : 'enemy_bullet_sprite');
-                this.enableBody(true, x, y, true, true);
-                
-                const bulletHitboxSize = BULLET_SPRITE_WIDTH * 0.97;
-                this.body.setSize(bulletHitboxSize, bulletHitboxSize).setOffset((BULLET_SPRITE_WIDTH - bulletHitboxSize) / 2, (BULLET_SPRITE_HEIGHT - bulletHitboxSize) / 2);
-
-                this.setVelocity(vx, vy).setPipeline('Light2D');
-                
-                if (this.bounces > 0) this.body.setCollideWorldBounds(true).setBounce(1);
-
-                this.light = getLightFromPool();
-                if (this.light) {
-                    const color = this.type === 'playerBullet' ? 0x00ffff : 0xff8c00;
-                    this.light.setPosition(x, y).setColor(color).setRadius(250).setVisible(true);
-                    this.scene.tweens.add({ targets: this.light, intensity: 1.5, duration: 100, ease: 'Sine.easeIn' });
-                }
-            }
-            
-            kill() {
-                if (!this.active) return;
-                if (this.light && this.light.visible) {
-                    const lightToFade = this.light;
-                    this.scene.tweens.add({
-                        targets: lightToFade, intensity: 0, duration: 100, ease: 'Sine.easeOut',
-                        onComplete: () => lightToFade.setVisible(false)
-                    });
-                    this.light = null;
-                }
-                this.disableBody(true, true);
-            }
-
-            preUpdate(time, delta) {
-                super.preUpdate(time, delta);
-                if (!this.active) return;
-                if (this.light) this.light.setPosition(this.x, this.y);
-                
-                if (this.bounces > 0) {
-                    if (this.body.blocked.left || this.body.blocked.right) {
-                        if (!this.justBounced) {
-                            this.bounces--; this.justBounced = true;
-                            this.scene.time.delayedCall(50, () => { this.justBounced = false; });
-                        }
-                    }
-                    if (this.bounces <= 0) {
-                        this.body.setCollideWorldBounds(false);
-                        this.scene.time.delayedCall(1000, () => this.kill());
-                    }
-                } else if (this.y < -20 || this.y > config.height + 20 || this.x < -20 || this.x > config.width + 20) {
-                    this.kill();
-                }
-            }
-        }
-        
-        class Meteor extends Phaser.Physics.Arcade.Sprite {
-            constructor(scene, x, y) {
-                super(scene, x, y, null);
-                scene.add.existing(this); scene.physics.add.existing(this);
-                this.body.allowGravity = false; this.setOrigin(0.5);
-                this.health = 1; this.initialHealth = 1;
-                this.healthBarBackground = scene.add.rectangle(0, 0, 1, 5, 0x555555).setOrigin(0.5, 0.5);
-                this.healthBar = scene.add.rectangle(0, 0, 1, 5, 0xcccccc).setOrigin(0.5, 0.5);
-            }
-
-            spawn(x, y) {
-                const meteorType = Phaser.Math.Between(1, 10);
-                const num = meteorType < 10 ? `0${meteorType}` : meteorType;
-                this.setTexture(`Meteor_${num}`);
-
-                this.setScale(Phaser.Math.FloatBetween(0.8, 1.2) * 0.27);
-                
-                const baseHealth = Phaser.Math.Between(7, 13);
-                this.health = Math.ceil(baseHealth * (1 + baseEnemyLevel * 0.2));
-                this.initialHealth = this.health;
-
-                this.enableBody(true, x, y, true, true);
-                this.body.setSize(this.width * 0.97, this.height * 0.97);
-
-                this.setVelocityY(Phaser.Math.Between(80, 150)).setAngularVelocity(Phaser.Math.Between(-50, 50)).setPipeline('Light2D');
-
-                this.healthBarBackground.setVisible(true); this.healthBar.setVisible(true);
-                this.updateHealthBar();
-            }
-
-            takeDamage(amount) {
-                this.health -= amount;
-                this.updateHealthBar();
-                if (this.health <= 0) this.kill();
-            }
-
-            kill() {
-                if (!this.active) return;
-                this.healthBarBackground.setVisible(false); this.healthBar.setVisible(false);
-                createExplosionLight(this.x, this.y, this.scene);
-                if (explosionEmitter) explosionEmitter.explode(15, this.x, this.y);
-                this.dropPowerUp();
-                this.disableBody(true, true);
-            }
-            
-            dropPowerUp() {
-                if (Math.random() < 0.25) {
-                    let type = bossFightActive ? (Math.random() < 0.5 ? 'health' : 'shield') : ['damage', 'health', 'extraShot', 'shield'][Phaser.Math.Between(0,3)];
-                    const powerUp = powerUps.get(this.x, this.y);
-                    if (powerUp) powerUp.spawn(this.x, this.y, type);
-                }
-            }
-
-            updateHealthBar() {
-                const barWidth = this.displayWidth * 0.8;
-                const barHeight = 5;
-                const yOffset = this.displayHeight / 2 + 10;
-                this.healthBarBackground.setPosition(this.x, this.y + yOffset).setSize(barWidth, barHeight);
-                const healthRatio = this.health / this.initialHealth;
-                this.healthBar.setPosition(this.x - (barWidth * (1 - healthRatio) / 2), this.y + yOffset).setSize(barWidth * healthRatio, barHeight);
-            }
-
-            preUpdate(time, delta) {
-                super.preUpdate(time, delta);
-                if(this.active) {
-                    this.updateHealthBar();
-                    if (this.y > config.height + this.displayHeight) this.kill();
-                }
-            }
-        }
-
-        class Enemy extends Phaser.Physics.Arcade.Sprite {
-            constructor(scene, x, y) {
-                super(scene, x, y, null);
-                scene.add.existing(this); scene.physics.add.existing(this);
-                this.body.allowGravity = false; this.setOrigin(0.5);
-                this.health = 1; this.initialHealth = 1; this.speed = 100; this.isBoss = false; this.isEnraged = false;
-                this.level = 1; this.damage = 1;
-                this.fireTimer = scene.time.addEvent({ delay: 1, callback: this.fireBullet, callbackScope: this, loop: true, paused: true });
-                this.healthBarBackground = scene.add.rectangle(0, 0, 1, 5, 0x555555).setOrigin(0.5, 0.5);
-                this.healthBar = scene.add.rectangle(0, 0, 1, 5, 0xff4500).setOrigin(0.5, 0.5);
-                this.levelText = scene.add.text(0, 0, '', { fontSize: '10px', fill: '#fff', fontFamily: 'Inter' }).setOrigin(0.5).setDepth(1);
-                this.horizontalTween = null; this.verticalTween = null;
-            }
-
-            spawn(x, y, isBoss = false, level = 1) {
-                this.enableBody(true, x, y, true, true);
-                this.level = level;
-                if (this.horizontalTween) this.horizontalTween.stop();
-                if (this.verticalTween) this.verticalTween.stop();
-                this.setPipeline('Light2D');
-                
-                this.isBoss = isBoss;
-                if (isBoss) this.spawnAsBoss(x, y);
-                else this.spawnAsMinion(x, y, level);
-                
-                this.setVisible(true).setActive(true);
-                this.levelText.setVisible(!isBoss);
-                this.fireTimer.paused = false;
-                this.updateHealthBar();
-            }
-
-            spawnAsMinion(x, y, level) {
-                this.setTexture('enemy1_sprite');
-                
-                const baseHealth = 3;
-                this.health = Math.ceil(baseHealth * (1 + level * 0.2));
-                this.initialHealth = this.health;
-                this.damage = 5 + (level - 1);
-
-                const baseEnemySpeed = 100;
-                const levelSpeedIncreaseFactor = Math.min((level - 1) * 0.05, 0.8);
-                this.speed = baseEnemySpeed * (1 + levelSpeedIncreaseFactor);
-                this.setVelocityY(this.speed);
-                
-                const enemyHitboxWidth = ENEMY_SPRITE_WIDTH * 0.70;
-                const enemyHitboxHeight = ENEMY_SPRITE_HEIGHT * 0.97;
-                this.body.setSize(enemyHitboxWidth, enemyHitboxHeight).setOffset((ENEMY_SPRITE_WIDTH - enemyHitboxWidth) / 1.7, (ENEMY_SPRITE_HEIGHT - enemyHitboxHeight) / 2);
-
-                this.fireTimer.delay = 2700 - (level * 20);
-                this.fireTimer.callback = this.fireBullet;
-
-                let tintColor = 0xFFFFFF;
-                if (level >= 2) tintColor = 0xADD8E6; if (level >= 4) tintColor = 0x90EE90;
-                if (level >= 6) tintColor = 0xFFD700; if (level >= 8) tintColor = 0xFFA500;
-                if (level >= 10) tintColor = 0xFF4500; if (level >= 15) tintColor = 0xDA70D6;
-                if (level >= 20) tintColor = 0xFF0000;
-                this.setTint(tintColor);
-                this.levelText.setText(`Lv${level}`);
-                this.healthBar.setVisible(true); this.healthBarBackground.setVisible(true);
-            }
-
-            spawnAsBoss(x, y) {
-                this.setTexture('boss_sprite');
-                this.setScale(0.3).setAlpha(1).setAngle(180).setDepth(10);
-                
-                const healthMultiplier = Math.pow(1.3, currentStage - 1);
-                const damageMultiplier = Math.pow(1.3, currentStage - 1);
-                const speedMultiplier = Math.pow(1.05, currentStage - 1);
-
-                this.health = 600 * healthMultiplier;
-                this.initialHealth = this.health;
-                this.damage = 15 * damageMultiplier;
-                this.isEnraged = false;
-
-                const bossHitboxWidth = this.width * 0.8;
-                const bossHitboxHeight = this.height * 0.8;
-                this.body.setSize(bossHitboxWidth, bossHitboxHeight).setOffset((this.width - bossHitboxWidth) / 2, (this.height - bossHitboxHeight) / 2);
-
-                this.fireTimer.delay = 1500;
-                this.fireTimer.callback = this.fireBossPattern;
-
-                this.scene.tweens.add({
-                    targets: this, y: 150, duration: 2000, ease: 'Cubic.easeOut',
-                    onComplete: () => {
-                        this.horizontalTween = this.scene.tweens.add({ targets: this, x: { from: 80, to: config.width - 80 }, ease: 'Sine.easeInOut', duration: 3000 / speedMultiplier, repeat: -1, yoyo: true });
-                        this.verticalTween = this.scene.tweens.add({ targets: this, y: { from: 120, to: 220 }, ease: 'Sine.easeInOut', duration: 1875 / speedMultiplier, repeat: -1, yoyo: true });
-                    }
-                });
-
-                this.healthBar.setVisible(false); this.healthBarBackground.setVisible(false);
-            }
-
-            fireBullet() {
-                if (!this.active) return;
-                const bullet = enemyBullets.get();
-                if (bullet) bullet.fire(this.x, this.y + this.displayHeight / 2 + 10, 0, this.speed * 2.5, 'enemyBullet', this.damage);
-            }
-
-            fireBossPattern() {
-                if (!this.active || !player.active) return;
-                const pattern = Phaser.Math.Between(1, 3);
-                switch(pattern) {
-                    case 1: this.fireStraightShot(); break;
-                    case 2: this.fireSpreadShot(); break;
-                    case 3: this.fireRicochetShot(); break;
-                }
-            }
-
-            fireStraightShot() {
-                const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-                const vx = Math.cos(angle) * 300;
-                const vy = Math.sin(angle) * 300;
-                const bullet = bossBullets.get();
-                if (bullet) bullet.fire(this.x, this.y, vx, vy, 'enemyBullet', this.damage);
-            }
-
-            fireSpreadShot() {
-                const shots = this.isEnraged ? 12 : 8;
-                for (let i = 0; i < shots; i++) {
-                    const angle = Phaser.Math.DegToRad((360 / shots) * i);
-                    const vx = Math.cos(angle) * 250;
-                    const vy = Math.sin(angle) * 250;
-                    const bullet = bossBullets.get();
-                    if (bullet) bullet.fire(this.x, this.y, vx, vy, 'enemyBullet', this.damage);
-                }
-            }
-
-            fireRicochetShot() {
-                const bullet = bossBullets.get();
-                if (bullet) {
-                    const vx = Phaser.Math.Between(1,2) === 1 ? -200 : 200;
-                    bullet.fire(this.x, this.y, vx, 200, 'enemyBullet', this.damage, 2);
-                }
-            }
-
-            takeDamage(amount) {
-                this.health -= amount;
-                this.updateHealthBar();
-                
-                this.setTint(0xff0000);
-                this.scene.time.delayedCall(100, () => {
-                    if (this.active) {
-                       this.clearTint();
-                       if (this.isEnraged) this.setTint(0xff6666);
-                    }
-                });
-
-                if (this.health <= 0) {
-                    this.kill();
-                } else if (this.isBoss && !this.isEnraged && (this.health / this.initialHealth) <= 0.35) {
-                    this.enrage();
-                }
-            }
-
-            enrage() {
-                this.isEnraged = true;
-                this.setTint(0xff6666);
-                if (this.horizontalTween) this.horizontalTween.timeScale *= 1.35;
-                if (this.verticalTween) this.verticalTween.timeScale *= 1.35;
-                this.fireTimer.delay = 1000;
-                this.damage *= 1.35;
-
-                let rageText = this.scene.add.text(this.x, this.y - 50, 'ENRAGED!', { fontSize: '24px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
-                this.scene.tweens.add({
-                    targets: rageText, alpha: 0, y: '-=50', duration: 1500,
-                    onComplete: () => rageText.destroy()
-                });
-            }
-            
-            kill() {
-                if (!this.active) return;
-                this.setActive(false);
-                createExplosionLight(this.x, this.y, this.scene);
-                this.fireTimer.paused = true;
-                this.healthBarBackground.setVisible(false); this.healthBar.setVisible(false); this.levelText.setVisible(false);
-                if (this.horizontalTween) this.horizontalTween.stop();
-                if (this.verticalTween) this.verticalTween.stop();
-                if (explosionEmitter) explosionEmitter.explode(this.isBoss ? 100 : 30, this.x, this.y);
-                
-                if (!this.isBoss) {
-                    score += this.level;
-                    updateUI();
-                    this.dropPowerUp();
-                } else {
-                    score += 50 * currentStage;
-                    bossObject = null;
-                    bossFightActive = false;
-                    this.scene.time.delayedCall(2000, () => endBossFight.call(this.scene));
-                }
-                
-                this.disableBody(true, true);
-            }
-
-            dropPowerUp() {
-                if (Math.random() < 0.1) {
-                    const type = ['damage', 'health', 'extraShot', 'shield'][Phaser.Math.Between(0,3)];
-                    const powerUp = powerUps.get(this.x, this.y);
-                    if (powerUp) powerUp.spawn(this.x, this.y, type);
-                }
-            }
-
-            updateHealthBar() {
-                const healthRatio = this.health / this.initialHealth;
-                if (this.isBoss) {
-                    if(bossHealthBarFillElement) bossHealthBarFillElement.style.width = `${healthRatio * 100}%`;
-                } else {
-                    const barWidth = this.displayWidth * 0.6;
-                    const yOffset = this.y - this.displayHeight / 2 - 15;
-                    const xOffset = this.x;
-
-                    this.healthBarBackground.setPosition(xOffset, yOffset).setSize(barWidth, 5).setOrigin(0.5, 0.5);
-                    this.healthBar.setPosition(xOffset - (barWidth * (1 - healthRatio) / 2), yOffset).setSize(barWidth * healthRatio, 5).setOrigin(0.5, 0.5);
-                    this.healthBar.setFillStyle(0x00ff00);
-                }
-            }
-
-            preUpdate(time, delta) {
-                super.preUpdate(time, delta);
-                if (this.active && !this.isBoss) {
-                    this.updateHealthBar();
-                    this.levelText.setPosition(this.x, this.y - this.displayHeight / 2 - 35);
-                    if (this.y > config.height + 50) this.kill();
-                }
-            }
-        }
-
-        class PowerUp extends Phaser.Physics.Arcade.Sprite {
-            constructor(scene, x, y) {
-                super(scene, x, y, null);
-                scene.add.existing(this); scene.physics.add.existing(this);
-                this.body.allowGravity = false; this.setOrigin(0.5); this.type = '';
-            }
-
-            spawn(x, y, type) {
-                this.enableBody(true, x, y, true, true);
-                this.type = type;
-                this.setTexture('powerup_' + type);
-                this.setVelocityY(100).setPipeline('Light2D');
-                this.body.setSize(POWERUP_SPRITE_SIZE, POWERUP_SPRITE_SIZE);
-            }
-
-            preUpdate(time, delta) {
-                super.preUpdate(time, delta);
-                if (this.y > config.height + 50) this.disableBody(true, true);
-            }
-        }
-
-        // --- Funções de Lógica do Jogo ---
-
-        function firePlayerBullet() {
-            if (!player.active) return;
-            const baseVy = -400;
-            const bulletSpawnY = player.y - player.displayHeight / 2;
-            let bullet = playerBullets.get();
-            if (bullet) bullet.fire(player.x, bulletSpawnY, 0, baseVy, 'playerBullet', playerDamage);
-            const offset = 20;
-            if (extraShots >= 1) {
-                let bulletLeft = playerBullets.get();
-                if (bulletLeft) bulletLeft.fire(player.x - offset, bulletSpawnY, 0, baseVy, 'playerBullet', playerDamage);
-            }
-            if (extraShots >= 2) {
-                let bulletRight = playerBullets.get();
-                if (bulletRight) bulletRight.fire(player.x + offset, bulletSpawnY, 0, baseVy, 'playerBullet', playerDamage);
-            }
-        }
-
-        function spawnStar() {
-            const x = Phaser.Math.Between(0, config.width);
-            const star = stars.create(x, -10, 'star_particle');
-            if (star) {
-                star.setVelocityY(Phaser.Math.Between(50, 200)).setScale(Phaser.Math.FloatBetween(0.2, 1)).setAlpha(star.scale * 0.8);
-            }
-        }
-
+        // Função auxiliar para spawn de inimigo
         function spawnEnemy() {
-            if (bossFightActive) return;
+            if (bossActive || isPaused) return; // Não spawna inimigos se o boss estiver ativo ou pausado
             const x = Phaser.Math.Between(50, config.width - 50);
-            const enemyLevelToSpawn = (baseEnemyLevel <= 3) ? baseEnemyLevel : Phaser.Math.Between(baseEnemyLevel - 2, baseEnemyLevel);
-            const enemy = enemies.get();
-            if (enemy) enemy.spawn(x, -50, false, enemyLevelToSpawn);
-        }
-        
-        function spawnMeteor() {
-            const x = Phaser.Math.Between(50, config.width - 50);
-            const meteor = meteors.get();
-            if (meteor) meteor.spawn(x, -100);
-        }
+            const y = -50; // Posição inicial Y para spawn acima da tela
 
-        function startBossFight() {
-            bossFightActive = true;
-            enemySpawnTimer.paused = true;
+            // Cria um Container para o inimigo. Suas coordenadas (x,y) serão o centro do inimigo.
+            const enemyContainer = this.add.container(x, y);
+
+            const enemyColor = this.ENEMY_COLORS[Math.min(this.currentEnemyLevel - 1, this.ENEMY_COLORS.length - 1)];
             
-            enemies.children.each(e => { if(e.active) e.kill(); });
+            // Cria o corpo visual principal do inimigo. Posiciona em (0,0) relativo ao container,
+            // e define sua origem no centro (0.5, 0.5) para que seu centro visual esteja em (0,0) dentro do container.
+            const enemyBodyGraphic = this.add.rectangle(0, 0, 50, 50, enemyColor); 
+            enemyBodyGraphic.setOrigin(0.5, 0.5);
 
-            if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'flex';
+            // Adiciona detalhes visuais (cabine e asas) relativos ao centro do container (0,0)
+            const cabin = this.add.rectangle(0, -10, 30, 30, 0x8B0000); 
+            cabin.setOrigin(0.5, 0.5);
+            const wingLeft = this.add.rectangle(-35, -10, 10, 30, 0xFF4500); 
+            wingLeft.setOrigin(0.5, 0.5);
+            const wingRight = this.add.rectangle(35, -10, 10, 30, 0xFF4500); 
+            wingRight.setOrigin(0.5, 0.5);
 
-            let warningText = this.add.text(config.width/2, config.height/2, 'WARNING!', { fontSize: '60px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 8 }).setOrigin(0.5).setDepth(200).setAlpha(0);
-            this.tweens.add({
-                targets: warningText, alpha: 1, scale: {from: 2, to: 1}, duration: 500, yoyo: true, hold: 1500,
-                onComplete: () => {
-                    warningText.destroy();
-                    bossObject = enemies.get();
-                    if (bossObject) bossObject.spawn(config.width / 2, -100, true);
+            // Adiciona todas as partes visuais ao container
+            enemyContainer.add([enemyBodyGraphic, cabin, wingLeft, wingRight]);
+
+            // Habilita a física para o CONTAINER
+            this.physics.world.enable(enemyContainer);
+            this.enemies.add(enemyContainer);
+
+            // Define o tamanho do hitbox para 50x50 (o corpo principal)
+            enemyContainer.body.setSize(50, 50);
+            // Offset para centralizar o hitbox de 50x50 no centro do container (0,0)
+            enemyContainer.body.setOffset(-25, -25); 
+
+            enemyContainer.body.setVelocityY(this.ENEMY_BASE_SPEED * this.enemySpeedMultiplier); // Usando this.ENEMY_BASE_SPEED e this.enemySpeedMultiplier
+            enemyContainer.body.enable = true; // Garante que o corpo de física esteja ativo
+            enemyContainer.body.active = true; // Garante que o corpo de física esteja ativo
+
+            // Adiciona propriedades customizadas ao container do inimigo
+            enemyContainer.level = Number(this.currentEnemyLevel); // Garante que o nível seja um número
+            enemyContainer.maxHealth = Number(this.ENEMY_HEALTH_PER_LEVEL) * Number(enemyContainer.level) * (1 + (Number(currentStage) - 1) * Number(this.STAGE_DIFFICULTY_INCREASE)); // Garante que todos sejam números
+            enemyContainer.health = Number(enemyContainer.maxHealth); // Garante que a vida seja um número
+            enemyContainer.damage = Number(this.ENEMY_BASE_DAMAGE) * (1 + (Number(enemyContainer.level) - 1) * Number(this.ENEMY_STRENGTH_INCREASE_PER_LEVEL)) * (1 + (Number(currentStage) - 1) * Number(this.STAGE_DIFFICULTY_INCREASE)); // Garante que todos sejam números
+            enemyContainer.lastShotTime = 0;
+            // A taxa de tiro do inimigo: mais rápido com maior dificuldade (menor fireRate)
+            // Multiplicador inverso: 1 / (1 + (speedMultiplier - 1) * 0.5)
+            // Se speedMultiplier = 1, multiplicador = 1. fireRate = 1500
+            // Se speedMultiplier = 2, multiplicador = 1 / (1 + 1 * 0.5) = 1 / 1.5 = 0.66. fireRate = 1000
+            // Se speedMultiplier = 5, multiplicador = 1 / (1 + 4 * 0.5) = 1 / 3 = 0.33. fireRate = 500
+            enemyContainer.fireRate = Number(this.ENEMY_FIRE_RATE) / (1 + (this.enemySpeedMultiplier - 1) * 0.5); 
+            if (enemyContainer.fireRate < 500) enemyContainer.fireRate = 500; // Limita a taxa de tiro mínima (mais rápido possível)
+            console.log(`Enemy spawned. Level: ${enemyContainer.level}, Health: ${enemyContainer.health}, Damage: ${enemyContainer.damage}, Fire Rate: ${enemyContainer.fireRate}`);
+
+
+            // Adiciona um timer para o inimigo atirar
+            enemyContainer.shootEvent = this.time.addEvent({
+                delay: enemyContainer.fireRate,
+                callback: () => {
+                    if (!isPaused) { // Só atira se o jogo não estiver pausado
+                        this.spawnEnemyBulletForEnemy(enemyContainer); // Usando this.spawnEnemyBulletForEnemy
+                    }
+                },
+                loop: true,
+                callbackScope: this // Garante que o 'this' dentro do callback seja a cena
+            });
+
+
+            // Adiciona a barra de vida do inimigo (Phaser Graphics)
+            // A barra de vida será posicionada acima do centro do inimigo (enemyContainer.y)
+            const healthBarYOffset = 50 / 2 + 10; // Metade da altura do hitbox + 10px de margem
+            enemyContainer.healthBarBg = this.add.rectangle(enemyContainer.x, enemyContainer.y - healthBarYOffset, 40, 5, 0x4a5568).setOrigin(0.5, 0.5);
+            enemyContainer.healthBarFill = this.add.rectangle(enemyContainer.x, enemyContainer.y - healthBarYOffset, 40, 5, 0x48bb78).setOrigin(0.5, 0.5);
+            enemyContainer.healthBarBg.setDepth(enemyContainer.depth + 1);
+            enemyContainer.healthBarFill.setDepth(enemyContainer.depth + 2);
+
+            // Associa a barra de vida ao inimigo para atualização de posição
+            enemyContainer.on('changedata', (gameObject, key, value) => {
+                if (key === 'health') {
+                    const healthPercentage = Number(value) / Number(gameObject.maxHealth); // Garante que sejam números
+                    gameObject.healthBarFill.width = 40 * healthPercentage;
+                    gameObject.healthBarFill.fillColor = (healthPercentage > 0.5 ? 0x48bb78 : (healthPercentage > 0.2 ? 0xFFD700 : 0xe53e3e));
+                }
+            });
+            // Atualiza a posição da barra de vida junto com o inimigo
+            enemyContainer.on('destroy', () => {
+                enemyContainer.healthBarBg.destroy();
+                enemyContainer.healthBarFill.destroy();
+                if (enemyContainer.shootEvent) enemyContainer.shootEvent.destroy(); // Destroi o evento de tiro do inimigo
+            });
+            enemyContainer.on('update', () => { // Usar 'update' para sincronizar a posição
+                enemyContainer.healthBarBg.x = enemyContainer.x;
+                enemyContainer.healthBarBg.y = enemyContainer.y - healthBarYOffset;
+                enemyContainer.healthBarFill.x = enemyContainer.x - (40 - enemyContainer.healthBarFill.width) / 2; // Ajusta a origem para a esquerda
+                enemyContainer.healthBarFill.y = enemyContainer.y - healthBarYOffset;
+            });
+        }
+        // Atribui a função ao contexto da cena
+        Phaser.Scene.prototype.spawnEnemy = spawnEnemy;
+
+
+        // Função auxiliar para spawn de tiro de inimigo
+        function spawnEnemyBulletForEnemy(enemy) {
+            // Cria um retângulo para o tiro do inimigo
+            const bulletGraphic = this.add.rectangle(enemy.x, enemy.y + enemy.displayHeight / 2, 4, 10, 0x00FF00); // Verde
+            // Habilita a física para o objeto gráfico e o adiciona ao grupo
+            this.physics.world.enable(bulletGraphic);
+            this.enemyBullets.add(bulletGraphic);
+            
+            // Define explicitamente o tamanho e o offset do corpo de física do tiro
+            bulletGraphic.body.setSize(4, 10);
+            bulletGraphic.body.setOffset(-2, -5); // Offset para centralizar o hitbox no gráfico (origem do gráfico é o centro)
+            bulletGraphic.body.enable = true; // Garante que o corpo de física esteja ativo
+            bulletGraphic.body.active = true; // Garante que o corpo de física esteja ativo
+
+            bulletGraphic.body.setVelocityY(this.ENEMY_BULLET_SPEED); // Usando this.ENEMY_BULLET_SPEED
+            bulletGraphic.damage = Number(enemy.damage); // Garante que o dano seja um número
+            playEnemyShootSound();
+        }
+        // Atribui a função ao contexto da cena
+        Phaser.Scene.prototype.spawnEnemyBulletForEnemy = spawnEnemyBulletForEnemy;
+
+
+        // Função auxiliar para iniciar a luta contra o boss
+        function startBossFight() {
+            bossActive = true;
+            if (spawnEnemyEvent) {
+                spawnEnemyEvent.destroy(); // Para de gerar inimigos normais
+                spawnEnemyEvent = null; // Limpa a referência
+            }
+            this.enemies.clear(true, true); // Remove inimigos existentes
+            this.enemyBullets.clear(true, true); // Remove tiros inimigos existentes
+            this.powerUps.clear(true, true); // Remove power-ups existentes
+
+            // Cria o sprite do boss (objeto Phaser)
+            const bossPhaserObject = this.physics.add.image(config.width / 2, -100, 'boss1')
+                .setOrigin(0.5, 0.5)
+                .setDisplaySize(150, 150) // Ajuste o tamanho conforme necessário
+                .setRotation(Math.PI) // Inverte em 180 graus
+                .setCollideWorldBounds(true)
+                .setImmovable(true);
+            
+            // Ajusta o hitbox do boss para o tamanho da imagem (150x150)
+            bossPhaserObject.body.setSize(150, 150); // Define o tamanho do hitbox para a imagem
+            bossPhaserObject.body.setOffset(0, 0); // Offset 0,0 para origem 0.5,0.5
+            bossPhaserObject.body.enable = true;
+            bossPhaserObject.body.active = true;
+
+            // Cria o objeto de dados do boss
+            boss = {
+                phaserObject: bossPhaserObject, // Referência ao objeto Phaser
+                level: Number(currentStage),
+                maxHealth: Number(this.BOSS_INITIAL_HEALTH) * (1 + (Number(currentStage) - 1) * Number(this.STAGE_DIFFICULTY_INCREASE)),
+                health: 0, // Inicializa para ser preenchido abaixo
+                damage: Number(this.ENEMY_BASE_DAMAGE) * Number(this.BOSS_DAMAGE_MULTIPLIER) * (1 + (Number(currentStage) - 1) * Number(this.STAGE_DIFFICULTY_INCREASE)),
+                speedX: 100 * Number(this.BOSS_SPEED_MULTIPLIER),
+                speedY: 50 * Number(this.BOSS_SPEED_MULTIPLIER), // Nova velocidade Y para movimento oscilatório
+                state: 'entering',
+                isRaging: false,
+                attackPattern: 0, // 0: Normal, 1: Ricochete, 2: Circular
+                lastAttackTime: 0,
+                fireRate: Number(this.ENEMY_FIRE_RATE) / 2 * 1.50, // 750 * 1.50 = 1125
+                lastAttackChangeTime: 0,
+                attackChangeInterval: 2000, // Troca de padrão de ataque a cada 2 segundos
+                currentMovementDirectionX: 1, // Para movimento oscilatório
+                currentMovementDirectionY: 1, // Para movimento oscilatório
+                movementRangeX: config.width * 0.35 / 2, // Metade da área de 35%
+                movementRangeY: config.height * 0.35 / 2, // Metade da área de 35%
+                initialX: config.width / 2, // Será atualizado quando entrar em 'fighting'
+                initialY: 100, // Será atualizado quando entrar em 'fighting'
+            };
+            boss.health = Number(boss.maxHealth); // Define a vida do boss após calcular maxHealth
+
+            console.log('Boss created. Initial Health:', boss.health, 'Max Health:', boss.maxHealth, 'Damage:', boss.damage, 'Fire Rate:', boss.fireRate);
+
+
+            // Atribui o método de tiro diretamente no objeto Phaser do boss
+            boss.phaserObject.shoot = function(scene, bossData) { // Agora recebe a cena e os dados do boss
+                if (bossData.state !== 'fighting' || isPaused) return;
+                const currentTime = scene.time.now;
+
+                if (currentTime - bossData.lastAttackChangeTime > bossData.attackChangeInterval) {
+                    bossData.attackPattern = (bossData.attackPattern + 1) % 3;
+                    bossData.lastAttackChangeTime = currentTime;
+                    console.log('Boss changed attack pattern to:', bossData.attackPattern);
+                }
+
+                if (currentTime - bossData.lastAttackTime > bossData.fireRate) {
+                    const bulletDamage = Number(bossData.damage);
+                    console.log('Boss shooting. Bullet damage:', bulletDamage, typeof bulletDamage, 'Pattern:', bossData.attackPattern);
+                    
+                    switch (bossData.attackPattern) {
+                        case 0: // Tiro normal, reto
+                            const normalBullet = scene.add.rectangle(this.x, this.y + this.displayHeight / 2, 4, 10, 0xFF00FF);
+                            scene.physics.world.enable(normalBullet);
+                            scene.enemyBullets.add(normalBullet);
+                            normalBullet.body.setVelocityY(scene.ENEMY_BULLET_SPEED).damage = bulletDamage;
+                            normalBullet.body.setSize(4, 10);
+                            normalBullet.body.setOffset(-2, -5);
+                            normalBullet.body.enable = true;
+                            normalBullet.body.active = true;
+                            break;
+                        case 1: // Tiro lateral, que ricocheteia
+                            // Tiro para a esquerda
+                            const bounceBulletLeft = scene.add.rectangle(this.x - this.displayWidth * 0.2, this.y + this.displayHeight / 2, 4, 10, 0x00FFFF);
+                            scene.physics.world.enable(bounceBulletLeft);
+                            scene.enemyBullets.add(bounceBulletLeft);
+                            bounceBulletLeft.body.setVelocity(-scene.ENEMY_BULLET_SPEED / 2, scene.ENEMY_BULLET_SPEED);
+                            bounceBulletLeft.body.setBounce(1, 1); // Ricochete total
+                            bounceBulletLeft.body.setCollideWorldBounds(true); // Colide com as bordas do mundo
+                            bounceBulletLeft.damage = bulletDamage;
+                            bounceBulletLeft.body.setSize(4, 10);
+                            bounceBulletLeft.body.setOffset(-2, -5);
+                            bounceBulletLeft.body.enable = true;
+                            bounceBulletLeft.body.active = true;
+
+                            // Tiro para a direita
+                            const bounceBulletRight = scene.add.rectangle(this.x + this.displayWidth * 0.2, this.y + this.displayHeight / 2, 4, 10, 0x00FFFF);
+                            scene.physics.world.enable(bounceBulletRight);
+                            scene.enemyBullets.add(bounceBulletRight);
+                            bounceBulletRight.body.setVelocity(scene.ENEMY_BULLET_SPEED / 2, scene.ENEMY_BULLET_SPEED);
+                            bounceBulletRight.body.setBounce(1, 1); // Ricochete total
+                            bounceBulletRight.body.setCollideWorldBounds(true); // Colide com as bordas do mundo
+                            bounceBulletRight.damage = bulletDamage;
+                            bounceBulletRight.body.setSize(4, 10);
+                            bounceBulletRight.body.setOffset(-2, -5);
+                            bounceBulletRight.body.enable = true;
+                            bounceBulletRight.body.active = true;
+                            break;
+                        case 2: // Tiro disparado em todas as direções (circular)
+                            const numCircularBullets = 8; // Número de tiros no círculo
+                            const angleStep = 360 / numCircularBullets;
+                            for (let i = 0; i < numCircularBullets; i++) {
+                                const angle = Phaser.Math.DegToRad(i * angleStep + 90); // +90 para começar apontando para baixo
+                                const circularBullet = scene.add.rectangle(this.x, this.y, 4, 10, 0xFF0000);
+                                scene.physics.world.enable(circularBullet);
+                                scene.enemyBullets.add(circularBullet);
+                                
+                                // Define a velocidade na direção do ângulo
+                                circularBullet.body.setVelocity(
+                                    Math.cos(angle) * scene.ENEMY_BULLET_SPEED,
+                                    Math.sin(angle) * scene.ENEMY_BULLET_SPEED
+                                );
+                                circularBullet.damage = bulletDamage;
+                                circularBullet.body.setSize(4, 10);
+                                circularBullet.body.setOffset(-2, -5);
+                                circularBullet.body.enable = true;
+                                circularBullet.body.active = true;
+                            }
+                            break;
+                    }
+                    playEnemyShootSound();
+                    bossData.lastAttackTime = currentTime; // Atualiza lastAttackTime no objeto de dados
+                }
+            };
+
+            // Exibe a barra de vida do boss
+            bossHealthBarBackground.setVisible(true);
+            bossHealthBarFill.setVisible(true);
+            bossHealthText.setVisible(true);
+            
+            // Atualiza a UI do boss na criação
+            if (bossHealthText) {
+                bossHealthText.setText(`BOSS: ${Math.max(0, Math.floor(boss.health))} / ${Math.floor(boss.maxHealth)}`);
+            }
+            if (bossHealthBarFill) {
+                bossHealthBarFill.width = 300 * (Number(boss.health) / Number(boss.maxHealth));
+                bossHealthBarFill.x = config.width / 2 - (300 - bossHealthBarFill.width) / 2;
+            }
+
+
+            // Adiciona novamente as colisões com o boss, usando boss.phaserObject
+            this.physics.add.overlap(this.bullets, boss.phaserObject, this.hitBoss, null, this);
+            this.physics.add.overlap(player, boss.phaserObject, this.hitPlayerByBoss, null, this);
+        }
+        // Atribui a função ao contexto da cena
+        Phaser.Scene.prototype.startBossFight = startBossFight;
+
+
+        // --- Collision Callbacks (agora métodos da cena) ---
+
+        function hitEnemy(bullet, enemy) {
+            console.log('hitEnemy: Bullet damage:', bullet.damage, 'Enemy health BEFORE:', enemy.health); // LOG
+            bullet.destroy(); // Destrói o tiro
+            enemy.health -= Number(bullet.damage); // Inimigo toma dano, garante que seja número
+            console.log('hitEnemy: Enemy health AFTER:', enemy.health); // LOG
+
+            // Atualiza a barra de vida do inimigo
+            const healthPercentage = Number(enemy.health) / Number(enemy.maxHealth); // Garante que sejam números
+            enemy.healthBarFill.width = 40 * healthPercentage;
+            enemy.healthBarFill.fillColor = (healthPercentage > 0.5 ? 0x48bb78 : (healthPercentage > 0.2 ? 0xFFD700 : 0xe53e3e));
+
+            if (enemy.health <= 0) {
+                score += 1;
+                playExplosionSound();
+                this.spawnParticles(enemy.x, enemy.y, 20, 0xFFD700); // Usando this.spawnParticles
+                enemy.body.enable = false; // Desabilita a física imediatamente
+                enemy.destroy(); // Destrói o inimigo
+                console.log('hitEnemy: Enemy DESTROYED! Score:', score); // LOG
+
+                // Chance de dropar power-up
+                if (Math.random() < this.POWER_UP_DROP_CHANCE) { // Usando this.POWER_UP_DROP_CHANCE
+                    const rand = Math.random();
+                    let type;
+                    if (rand < 0.33) type = 'rapidFire';
+                    else if (rand < 0.66) type = 'shield';
+                    else type = 'damageUp';
+                    this.spawnPowerUp(enemy.x, enemy.y, type); // Usando this.spawnPowerUp
+                }
+            } else {
+                playHitSound();
+                this.spawnParticles(bullet.x, bullet.y, 5, 0xFFFF00); // Usando this.spawnParticles
+                console.log('hitEnemy: Enemy took damage, not destroyed.'); // LOG
+            }
+        }
+        Phaser.Scene.prototype.hitEnemy = hitEnemy;
+
+
+        function hitBoss(bullet, bossPhaserObject) { // Agora recebe o objeto Phaser do boss
+            // Usa a variável global 'boss' para acessar os dados do boss (vida, etc.)
+            // Não é mais necessário o check de mismatch, pois a estrutura do boss foi melhorada.
+            if (!boss || !boss.phaserObject) {
+                console.warn('hitBoss: Boss object not found or not fully initialized. Ignoring hit.');
+                bullet.destroy();
+                return;
+            }
+
+            console.log('hitBoss: Bullet damage:', bullet.damage, 'Boss health BEFORE:', boss.health); // LOG
+            bullet.destroy();
+            boss.health -= Number(bullet.damage); // Garante que o dano seja um número
+            console.log('hitBoss: Boss health AFTER:', boss.health, typeof boss.health); // LOG
+
+            this.bossUpdateRageMode(boss, this); // Passa o objeto de dados do boss e a cena
+
+            // Atualiza a UI da barra de vida do boss
+            if (bossHealthBarFill) {
+                bossHealthBarFill.width = 300 * (Number(boss.health) / Number(boss.maxHealth)); // Garante que sejam números
+                bossHealthBarFill.x = config.width / 2 - (300 - bossHealthBarFill.width) / 2; // Ajusta a origem
+            }
+            if (bossHealthText) {
+                bossHealthText.setText(`BOSS: ${Math.max(0, Math.floor(boss.health))} / ${Math.floor(boss.maxHealth)}`);
+            }
+            
+            if (Number(boss.health) <= 0) { // Garante que seja número
+                console.log('hitBoss: Boss defeated!'); // LOG
+                playBossDefeatSound();
+                playExplosionSound();
+                this.spawnParticles(bossPhaserObject.x, bossPhaserObject.y, 50, 0xFFD700); // Usando o phaserObject para posição
+                
+                // Esconde as barras de vida do boss
+                if (bossHealthBarBackground) bossHealthBarBackground.setVisible(false);
+                if (bossHealthBarFill) bossHealthBarFill.setVisible(false);
+                if (bossHealthText) bossHealthText.setVisible(false);
+
+                // Destrói o boss e limpa referências
+                bossPhaserObject.body.enable = false; // Desabilita a física imediatamente
+                bossPhaserObject.destroy();
+                bossActive = false; // Define como falso antes de null
+                boss = null; // Limpa a referência global do objeto de dados do boss
+                this.enemyBullets.clear(true, true); // Remove todos os tiros do boss
+
+                score += 100;
+                currentStage++;
+                // Reinicia a lógica do jogo para o próximo estágio
+                this.scene.restart(); // Reinicia a cena Phaser
+            } else {
+                playBossHitSound();
+                this.spawnParticles(bullet.x, bullet.y, 10, 0xFFD700); // Usando this.spawnParticles
+                console.log('hitBoss: Boss took damage, not defeated.'); // LOG
+            }
+        }
+        Phaser.Scene.prototype.hitBoss = hitBoss;
+
+
+        function hitPlayerByEnemy(playerInstance, enemy) {
+            console.log('hitPlayerByEnemy: Player health BEFORE:', playerInstance.health, 'Enemy collision damage:', this.ENEMY_COLLISION_DAMAGE); // LOG
+            // Se o jogador tiver escudo ativo, absorve o dano e o escudo diminui
+            if (playerInstance.shieldActive && playerInstance.shield > 0) {
+                const damageToTake = Number(this.ENEMY_COLLISION_DAMAGE); // Garante que seja número
+                playerInstance.shield = Number(playerInstance.shield) - damageToTake; // Garante que seja número
+                if (playerInstance.shield < 0) {
+                    playerInstance.health = Number(playerInstance.health) + playerInstance.shield; // Reduz a vida se o escudo for negativo, garante que seja número
+                    playerInstance.shield = 0;
+                }
+                this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD);
+                playHitSound(); // Som de escudo atingido
+            } else {
+                playerInstance.health = Number(playerInstance.health) - Number(this.ENEMY_COLLISION_DAMAGE); // Garante que seja número
+                this.updatePlayerHealthDisplay(playerInstance.health, 100); // Usando a função auxiliar
+                playExplosionSound(); // Som de dano no jogador
+                this.spawnParticles(playerInstance.x, playerInstance.y, 15, 0xFF0000); // Partículas de dano no jogador
+            }
+            
+            enemy.body.enable = false; // Desabilita a física imediatamente
+            enemy.destroy(); // Destrói o inimigo ao colidir
+
+            console.log('hitPlayerByEnemy: Player health AFTER:', playerInstance.health); // LOG
+            if (Number(playerInstance.health) <= 0) { // Garante que seja número
+                this.endGame(); // Usando this.endGame
+            }
+        }
+        Phaser.Scene.prototype.hitPlayerByEnemy = hitPlayerByEnemy;
+
+
+        function hitPlayerByEnemyBullet(playerInstance, bullet) {
+            console.log('hitPlayerByEnemyBullet: Player health BEFORE:', playerInstance.health, 'Bullet damage:', bullet.damage); // LOG
+            // Se o jogador tiver escudo ativo, absorve o dano e o escudo diminui
+            if (playerInstance.shieldActive && playerInstance.shield > 0) {
+                const damageToTake = Number(bullet.damage); // Garante que seja número
+                playerInstance.shield = Number(playerInstance.shield) - damageToTake; // Garante que seja número
+                if (playerInstance.shield < 0) {
+                    playerInstance.health = Number(playerInstance.health) + playerInstance.shield; // Reduz a vida se o escudo for negativo, garante que seja número
+                    playerInstance.shield = 0;
+                }
+                this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD);
+                playHitSound(); // Som de escudo atingido
+            } else {
+                playerInstance.health = Number(playerInstance.health) - Number(bullet.damage); // Garante que seja número
+                this.updatePlayerHealthDisplay(playerInstance.health, 100); // Usando a função auxiliar
+                playHitSound(); // Som de dano no jogador
+                this.spawnParticles(bullet.x, bullet.y, 10, 0xFF0000); // Partículas de dano no jogador
+            }
+            bullet.destroy(); // Destrói o tiro
+            console.log('hitPlayerByEnemyBullet: Player health AFTER:', playerInstance.health); // LOG
+            if (Number(playerInstance.health) <= 0) { // Garante que seja número
+                this.endGame(); // Usando this.endGame
+            }
+        }
+        Phaser.Scene.prototype.hitPlayerByEnemyBullet = hitPlayerByEnemyBullet;
+
+        // Nova função para hitPlayerByBoss
+        function hitPlayerByBoss(playerInstance, bossPhaserObject) { // Agora recebe o objeto Phaser do boss
+            // Usa a variável global 'boss' para acessar os dados do boss (vida, etc.)
+            if (!boss || !boss.phaserObject) {
+                console.warn('hitPlayerByBoss: Boss object not found or not fully initialized. Ignoring hit.');
+                return;
+            }
+
+            console.log('hitPlayerByBoss: Player health BEFORE:', playerInstance.health, 'Boss collision damage:', this.BOSS_COLLISION_DAMAGE); // LOG
+            // Se o jogador tiver escudo ativo, absorve o dano e o escudo diminui
+            if (playerInstance.shieldActive && playerInstance.shield > 0) {
+                const damageToTake = Number(this.BOSS_COLLISION_DAMAGE); // Garante que seja número
+                playerInstance.shield = Number(playerInstance.shield) - damageToTake; // Garante que seja número
+                if (playerInstance.shield < 0) {
+                    playerInstance.health = Number(playerInstance.health) + playerInstance.shield; // Reduz a vida se o escudo for negativo, garante que seja número
+                    playerInstance.shield = 0;
+                }
+                this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD);
+                playHitSound(); // Som de escudo atingido
+            } else {
+                playerInstance.health = Number(playerInstance.health) - Number(this.BOSS_COLLISION_DAMAGE); // Garante que seja número
+                this.updatePlayerHealthDisplay(playerInstance.health, 100);
+                playExplosionSound();
+                this.spawnParticles(playerInstance.x, playerInstance.y, 30, 0xFF0000);
+            }
+            console.log('hitPlayerByBoss: Player health AFTER:', playerInstance.health); // LOG
+            if (Number(playerInstance.health) <= 0) { // Garante que seja número
+                this.endGame();
+            }
+        }
+        Phaser.Scene.prototype.hitPlayerByBoss = hitPlayerByBoss;
+
+
+        function collectPowerUp(playerInstance, powerUp) {
+            playPowerUpSound();
+            if (powerUp.type === 'rapidFire') {
+                playerInstance.rapidFireActive = true;
+                if (activePowerUps.rapidFireTimer) clearTimeout(activePowerUps.rapidFireTimer);
+                activePowerUps.rapidFireTimer = setTimeout(() => {
+                    playerInstance.rapidFireActive = false;
+                    this.updatePlayerPowerUpStatusDisplay(playerInstance.rapidFireActive, playerInstance.shieldActive, playerInstance.bulletDamage); // Usando this.updatePlayerPowerUpStatusDisplay
+                }, this.POWER_UP_DURATION); // Usando this.POWER_UP_DURATION
+            } else if (powerUp.type === 'shield') {
+                playerInstance.shield = Number(this.MAX_SHIELD); // Garante que seja número
+                playerInstance.shieldActive = true;
+                this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD); // Usando a função auxiliar e this.MAX_SHIELD
+                if (activePowerUps.shieldTimer) clearTimeout(activePowerUps.shieldTimer);
+                activePowerUps.shieldTimer = setTimeout(() => {
+                    playerInstance.shield = 0;
+                    playerInstance.shieldActive = false;
+                    this.updatePlayerShieldDisplay(playerInstance.shield, this.MAX_SHIELD); // Usando a função auxiliar e this.MAX_SHIELD
+                    this.updatePlayerPowerUpStatusDisplay(playerInstance.rapidFireActive, playerInstance.shieldActive, playerInstance.bulletDamage); // Usando this.updatePlayerPowerUpStatusDisplay
+                }, this.POWER_UP_DURATION); // Usando this.POWER_UP_DURATION
+            } else if (powerUp.type === 'damageUp') {
+                playerInstance.bulletDamage = Number(playerInstance.bulletDamage) + 1; // Garante que seja número
+            }
+            this.updatePlayerPowerUpStatusDisplay(playerInstance.rapidFireActive, playerInstance.shieldActive, playerInstance.bulletDamage); // Atualiza após coletar
+            powerUp.destroy();
+            // Destrói o texto do power-up que foi criado junto com ele
+            if (powerUp.symbolText) {
+                powerUp.symbolText.destroy();
+            }
+        }
+        Phaser.Scene.prototype.collectPowerUp = collectPowerUp;
+
+
+        function spawnPowerUp(x, y, type) {
+            // Cria um objeto gráfico para o power-up
+            const powerUpGraphic = this.add.graphics();
+            let color, symbol;
+            if (type === 'rapidFire') { color = 0xFFD700; symbol = '⚡'; }
+            else if (type === 'shield') { color = 0x8A2BE2; symbol = '🛡️'; }
+            else if (type === 'damageUp') { color = 0xFF6347; symbol = '+1'; }
+
+            powerUpGraphic.fillStyle(color, 1);
+            if (type === 'rapidFire') {
+                const outerRadius = 15; // Tamanho fixo para o power-up
+                const innerRadius = outerRadius / 2.5;
+                const numPoints = 5;
+                powerUpGraphic.beginPath();
+                for (let i = 0; i < numPoints * 2; i++) {
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const angle = (Math.PI / numPoints) * i;
+                    const px = radius * Math.sin(angle);
+                    const py = -radius * Math.cos(angle); // Inverte Y para desenhar para cima
+                    if (i === 0) powerUpGraphic.moveTo(px, py); else powerUpGraphic.lineTo(px, py);
+                }
+                powerUpGraphic.closePath();
+                powerUpGraphic.fill();
+            } else {
+                powerUpGraphic.fillCircle(0, 0, 15); // Tamanho fixo para o power-up
+            }
+
+            // Habilita a física para o objeto gráfico e o adiciona ao grupo
+            this.physics.world.enable(powerUpGraphic);
+            this.powerUps.add(powerUpGraphic);
+            powerUpGraphic.setPosition(x, y); // Define a posição
+            powerUpGraphic.body.setVelocityY((this.ENEMY_BASE_SPEED / 2) * this.enemySpeedMultiplier); // Usando this.ENEMY_BASE_SPEED e this.enemySpeedMultiplier
+            powerUpGraphic.body.setSize(30, 30); // Ajusta o hitbox (tamanho do círculo/estrela)
+            powerUpGraphic.body.setOffset(-15, -15); // Ajusta o offset do hitbox
+            powerUpGraphic.type = type;
+            powerUpGraphic.body.enable = true; // Garante que o corpo de física esteja ativo
+            powerUpGraphic.body.active = true; // Garante que o corpo de física esteja ativo
+
+            // CORREÇÃO AQUI: Use this.add.text diretamente
+            powerUpGraphic.symbolText = this.add.text(x, y, symbol, { fontSize: '16px', fill: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5, 0.5);
+            powerUpGraphic.setDepth(player.depth + 1); // Garante que o power-up esteja acima de outros objetos
+
+            // Sincroniza a posição do texto com o power-up
+            powerUpGraphic.on('destroy', () => { if (powerUpGraphic.symbolText) powerUpGraphic.symbolText.destroy(); });
+            powerUpGraphic.on('update', () => {
+                if (powerUpGraphic.symbolText) {
+                    powerUpGraphic.symbolText.x = powerUpGraphic.x;
+                    powerUpGraphic.symbolText.y = powerUpGraphic.y + 2; // Ajuste fino para centralizar
                 }
             });
         }
+        Phaser.Scene.prototype.spawnPowerUp = spawnPowerUp;
 
-        function endBossFight() {
-            this.physics.pause();
-            meteorSpawnTimer.paused = true;
-            
-            if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
 
-            const screen = document.getElementById('stage-clear-screen');
-            screen.style.visibility = 'visible';
-            screen.style.opacity = '1';
-        }
+        function spawnParticles(x, y, count, color) {
+            for (let i = 0; i < count; i++) {
+                const size = Phaser.Math.Between(2, 8);
+                const speedX = Phaser.Math.Between(-100, 100);
+                const speedY = Phaser.Math.Between(-100, 100);
+                const life = Phaser.Math.Between(200, 600); // Milissegundos
 
-        function startNextStage() {
-            const screen = document.getElementById('stage-clear-screen');
-            screen.style.visibility = 'hidden';
-            screen.style.opacity = '0';
-
-            this.physics.resume();
-            meteorSpawnTimer.paused = false;
-            enemySpawnTimer.paused = false;
-
-            currentStage++;
-            scoreToNextBoss = Math.ceil(scoreToNextBoss * 1.40);
-            
-            playerDamage = baseEnemyLevel;
-
-            updateUI();
-        }
-        
-        function handlePlayerHit(bullet, target) {
-            if (!bullet.active || !target.active) return;
-
-            bullet.kill();
-
-            let damageDealt = bullet.damage;
-            const isCritical = Math.random() < 0.25;
-
-            if (isCritical) {
-                damageDealt *= 1.5;
-                
-                const critText = this.add.text(target.x, target.y, 'CRIT!', {
-                    fontFamily: 'Inter', fontSize: '18px', fill: '#ffc700',
-                    stroke: '#000000', strokeThickness: 4, fontStyle: 'bold'
-                }).setOrigin(0.5).setDepth(200);
-                
-                const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-                const distance = 40;
-                const targetX = target.x + Math.cos(angle) * distance;
-                const targetY = target.y + Math.sin(angle) * distance;
-
+                const particle = this.add.rectangle(x, y, size, size, color).setDepth(20);
                 this.tweens.add({
-                    targets: critText, x: targetX, y: targetY, alpha: 0, scale: 1.5, duration: 600, ease: 'Power3',
-                    onComplete: () => critText.destroy()
+                    targets: particle,
+                    x: particle.x + speedX,
+                    y: particle.y + speedY,
+                    alpha: 0,
+                    duration: life,
+                    ease: 'Power1',
+                    onComplete: () => particle.destroy()
                 });
             }
-
-            target.takeDamage(damageDealt);
         }
+        Phaser.Scene.prototype.spawnParticles = spawnParticles;
 
-        function hitPlayerByMeteor(player, meteor) {
-            applyDamageToPlayer(30, this);
-            meteor.kill();
-        }
 
-        function hitPlayer(player, bullet, scene) {
-            bullet.kill();
-            applyDamageToPlayer(bullet.damage, scene);
-        }
-
-        function hitPlayerByEnemy(player, enemy, scene) {
-            applyDamageToPlayer(enemy.damage, scene);
-            enemy.kill();
-        }
-
-        function applyDamageToPlayer(damage, scene) {
-            if (!player.active) return;
-            
-            scene.cameras.main.shake(100, 0.01);
-            player.setTint(0xff0000);
-            scene.time.delayedCall(100, () => player.clearTint());
-
-            if (shieldAmount > 0) {
-                shieldAmount -= damage;
-                if (shieldAmount < 0) { playerHealth += shieldAmount; shieldAmount = 0; }
-            } else {
-                playerHealth -= damage;
+        function endGame() {
+            // Para o jogo
+            if (game && game.scene.isActive('default')) { // Verifica se a cena está ativa antes de pausar
+                game.scene.pause('default'); // Pausa a cena atual
             }
-
-            if (playerHealth <= 0) { playerHealth = 0; gameOver.call(scene); }
-            updateUI();
-        }
-
-        function collectPowerUp(player, powerUp) {
-            powerUp.disableBody(true, true);
-            switch (powerUp.type) {
-                case 'damage': playerDamage++; break;
-                case 'health': playerHealth = Math.min(playerMaxHealth, playerHealth + 20); break;
-                case 'extraShot': if (extraShots < MAX_EXTRA_SHOTS) extraShots++; else score += 10; break;
-                case 'shield':
-                    shieldAmount = SHIELD_MAX_VALUE;
-                    shieldDuration = SHIELD_MAX_DURATION;
-                    if (shieldTimerEvent) shieldTimerEvent.destroy();
-                    shieldTimerEvent = this.time.addEvent({ delay: 1000, callback: updateShieldDuration, callbackScope: this, loop: true });
-                    player.shieldSprite.setVisible(true);
-                    this.tweens.add({ targets: player.shieldSprite, alpha: { from: 0.7, to: 0.3 }, scale: { from: 1.2, to: 1.3 }, ease: 'Sine.easeInOut', duration: 500, yoyo: true, repeat: -1 });
-                    break;
+            isPaused = true;
+            if (spawnEnemyEvent) { // Verifica se o evento existe antes de destruir
+                spawnEnemyEvent.destroy(); // Garante que o spawn pare
+                spawnEnemyEvent = null; // Limpa a referência
             }
-            updateUI();
-        }
+            Tone.Transport.stop(); // Para a música
 
-        function updateShieldDuration() {
-            if (shieldAmount > 0) {
-                shieldDuration--;
-                if (shieldDuration <= 0) {
-                    shieldAmount = 0;
-                    if (shieldTimerEvent) shieldTimerEvent.destroy();
-                    this.tweens.killTweensOf(player.shieldSprite);
-                    player.shieldSprite.setVisible(false);
-                }
-            }
-            updateUI();
+            // Mostra a tela de Game Over HTML
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOverScreen').style.display = 'flex';
+            playGameOverSound();
         }
+        Phaser.Scene.prototype.endGame = endGame;
 
-        function updateUI() {
-            if (scoreTextElement) scoreTextElement.textContent = score;
-            
-            let newBaseEnemyLevel = Math.floor(score / 50) + 1;
-            if (newBaseEnemyLevel > baseEnemyLevel) baseEnemyLevel = newBaseEnemyLevel;
-            if (baseEnemyLevelUITextElement) baseEnemyLevelUITextElement.textContent = baseEnemyLevel;
-            if (stageTextElement) stageTextElement.textContent = currentStage;
-            
-            if (healthBarFillElement) {
-                healthBarFillElement.style.width = `${(playerHealth / playerMaxHealth) * 100}%`;
-                healthTextElement.textContent = `${Math.ceil(playerHealth)} / ${playerMaxHealth}`;
-            }
-            
-            if (shieldBarOverlayElement) {
-                if (shieldAmount > 0) {
-                    shieldBarOverlayElement.style.opacity = '1';
-                    shieldBarOverlayElement.style.width = `${(shieldAmount / SHIELD_MAX_VALUE) * 100}%`;
-                    shieldTimerElement.style.opacity = '1';
-                    shieldTimerElement.textContent = `${shieldDuration}s`;
-                    document.getElementById('shield-timer-icon').style.opacity = '1';
+
+        // --- Helper functions to update UI elements (globally accessible) ---
+        // Estas funções agora são métodos da cena para acessar as propriedades da UI diretamente
+        function updatePlayerHealthDisplay(health, maxHealth) {
+            console.log('Updating player health display. Health:', health, 'Max Health:', maxHealth); // LOG
+            healthText.setText(`Vida: ${Math.max(0, Math.floor(health))}`); // Garante que seja um número inteiro não-negativo
+            const healthPercentage = Number(health) / Number(maxHealth); // Garante que sejam números
+            // A largura total da barra de saúde é 100px (definida no CSS e no retângulo Phaser)
+            this.healthBarFill.width = 100 * healthPercentage;
+            this.healthBarFill.fillColor = (health <= 20 ? 0xe53e3e : 0x48bb78);
+            // Ajusta a posição X para que a barra preencha da esquerda para a direita
+            this.healthBarFill.x = (config.width - 70) - (100 - this.healthBarFill.width) / 2;
+        }
+        Phaser.Scene.prototype.updatePlayerHealthDisplay = updatePlayerHealthDisplay;
+
+
+        function updatePlayerShieldDisplay(shield, maxShield) {
+            shieldText.setText(`Escudo: ${Math.max(0, Math.floor(shield))}`); // Garante que seja um número inteiro não-negativo
+            const shieldPercentage = Number(shield) / Number(maxShield); // Garante que sejam números
+            // A largura total da barra de escudo é 100px
+            this.shieldBarFill.width = 100 * shieldPercentage;
+            this.shieldBarFill.fillColor = 0x667eea; // Cor do escudo
+            // Ajusta a posição X para que a barra preencha da esquerda para a direita
+            this.shieldBarFill.x = (config.width - 70) - (100 - this.shieldBarFill.width) / 2;
+        }
+        Phaser.Scene.prototype.updatePlayerShieldDisplay = updatePlayerShieldDisplay;
+
+
+        function updatePlayerPowerUpStatusDisplay(rapidFireActive, shieldActive, bulletDamage) {
+            let statusText = [];
+            if (rapidFireActive) statusText.push('Tiro Rápido');
+            if (shieldActive) statusText.push('Escudo');
+            // Acessa PLAYER_BASE_BULLET_DAMAGE do contexto da cena
+            if (Number(bulletDamage) > Number(this.PLAYER_BASE_BULLET_DAMAGE)) statusText.push(`Dano +${Number(bulletDamage) - Number(this.PLAYER_BASE_BULLET_DAMAGE)}`); // Garante que sejam números
+            powerUpStatusText.setText(`Power-up: ${statusText.length === 0 ? 'Nenhum' : statusText.join(', ')}`);
+            damageText.setText(`Dano: ${Number(bulletDamage)}`); // Garante que seja número
+        }
+        Phaser.Scene.prototype.updatePlayerPowerUpStatusDisplay = updatePlayerPowerUpStatusDisplay;
+
+
+        // --- Event Listeners para botões HTML (fora do Phaser) ---
+
+        document.getElementById('startButton').addEventListener('click', () => {
+            // Inicia o contexto de áudio do Tone.js no clique do botão
+            Tone.start().then(() => {
+                // Inicia a cena do jogo. A instância 'game' já deve estar criada em window.onload.
+                if (game) {
+                    game.scene.start('default');
                 } else {
-                    shieldBarOverlayElement.style.opacity = '0';
-                    shieldTimerElement.style.opacity = '0';
-                    document.getElementById('shield-timer-icon').style.opacity = '0.5';
+                    console.error("Game instance not found. This should not happen if window.onload executed correctly.");
+                }
+                
+                // Agora backgroundMusic deve estar definido
+                if (gameSettings.backgroundMusicEnabled && backgroundMusic) { 
+                    backgroundMusic.start(0);
+                    Tone.Transport.start();
+                }
+            });
+        });
+
+        document.getElementById('settingsButton').addEventListener('click', () => {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('settingsScreen').style.display = 'flex';
+        });
+
+        document.getElementById('backToStartButton').addEventListener('click', () => {
+            document.getElementById('settingsScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'flex';
+        });
+
+        document.getElementById('resumeButton').addEventListener('click', () => {
+            const scene = game.scene.getScene('default');
+            if (scene && scene.scene.isPaused()) {
+                togglePause(); // Usa a função de toggle para despausar
+            }
+        });
+
+        document.getElementById('restartButton').addEventListener('click', () => {
+            // Resetar score e currentStage apenas no Game Over
+            score = 0;
+            currentStage = 1;
+
+            // Inicia o contexto de áudio do Tone.js no clique do botão de restart
+            Tone.start().then(() => {
+                // Reinicia a cena do jogo. Isso chamará init() e create() novamente, que reinicializa tudo.
+                if (game) {
+                    game.scene.start('default');
+                } else {
+                    console.error("Game instance not found on restart. This should not happen.");
+                }
+
+                // Esconde todas as telas de sobreposição
+                document.getElementById('gameOverScreen').style.display = 'none';
+                document.getElementById('startScreen').style.display = 'none';
+                document.getElementById('settingsScreen').style.display = 'none';
+                document.getElementById('pauseScreen').style.display = 'none';
+
+                // Agora backgroundMusic deve estar definido
+                if (gameSettings.backgroundMusicEnabled && backgroundMusic) { 
+                    backgroundMusic.start(0);
+                    Tone.Transport.start();
+                }
+            });
+        });
+
+        document.getElementById('toggleShotSounds').addEventListener('change', (e) => {
+            gameSettings.shotSoundsEnabled = e.target.checked;
+        });
+
+        document.getElementById('toggleBackgroundMusic').addEventListener('change', (e) => {
+            gameSettings.backgroundMusicEnabled = e.target.checked;
+            if (gameSettings.backgroundMusicEnabled) {
+                if (Tone.context.state === 'running' && backgroundMusic) { 
+                    backgroundMusic.start(0);
+                    Tone.Transport.start();
+                }
+            } else {
+                if (backgroundMusic) { 
+                    backgroundMusic.stop(); // Usa backgroundMusic.stop() para o loop
                 }
             }
-            
-            if (damageTextElement) damageTextElement.textContent = playerDamage;
-            if (extraShotsTextElement) extraShotsTextElement.textContent = 1 + extraShots;
-        }
+        });
 
-        function gameOver() {
-            if (!player.active) return;
-            player.setActive(false);
-            this.physics.pause();
-            this.time.removeAllEvents();
-            createExplosionLight(player.x, player.y, this);
-            if (explosionEmitter) explosionEmitter.explode(50, player.x, player.y);
-            if(player.shieldSprite) player.shieldSprite.setVisible(false);
-            
-            if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
-            
-            const gameOverScreen = document.getElementById('game-over-screen');
-            document.getElementById('final-score-value').textContent = score;
-            gameOverScreen.style.visibility = 'visible';
-            gameOverScreen.style.opacity = '1';
-
-            updateRanking(score);
-        }
-
-        function resetGameVariables() {
-            score = 0; playerHealth = 100; playerDamage = 1; extraShots = 0;
-            shieldAmount = 0; shieldDuration = SHIELD_MAX_DURATION;
-            if (shieldTimerEvent) shieldTimerEvent.destroy();
-            shieldTimerEvent = null;
-
-            bossFightActive = false; bossObject = null;
-            currentStage = 1; baseEnemyLevel = 1; scoreToNextBoss = 100;
-            isPaused = false;
-            
-            if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
-        }
-        
-        // --- Funções de Controle ---
-
+        // --- Função de pausa global ---
         function togglePause() {
-            isPaused = !isPaused;
-            const pauseScreen = document.getElementById('pause-screen');
+            const scene = game.scene.getScene('default'); // Pega a cena atual
+            if (!scene) return; // Garante que a cena exista
+
             if (isPaused) {
-                this.scene.pause();
-                pauseScreen.style.visibility = 'visible';
-                pauseScreen.style.opacity = '1';
-            } else {
-                this.scene.resume();
-                pauseScreen.style.visibility = 'hidden';
-                pauseScreen.style.opacity = '0';
-            }
-        }
-        
-        // --- Funções de Ranking ---
-        function getRanking() {
-            const rankingJSON = localStorage.getItem('spaceShooterRanking');
-            return rankingJSON ? JSON.parse(rankingJSON) : [];
-        }
-
-        function updateRanking(newScore) {
-            let ranking = getRanking();
-            const lowestScore = ranking.length < 5 ? 0 : ranking[4].score;
-
-            if (newScore > lowestScore) {
-                const name = prompt("Novo Recorde! Digite seu nome (3 caracteres):", "JOG");
-                if (name) {
-                    ranking.push({ name: name.substring(0, 3).toUpperCase(), score: newScore });
-                    ranking.sort((a, b) => b.score - a.score);
-                    ranking = ranking.slice(0, 5);
-                    localStorage.setItem('spaceShooterRanking', JSON.stringify(ranking));
+                scene.scene.resume(); // Retoma a cena Phaser
+                document.getElementById('pauseScreen').style.display = 'none';
+                // Só reinicia o spawn se não estiver em boss fight e o evento não estiver ativo
+                if (!bossActive && !spawnEnemyEvent) {
+                    spawnEnemyEvent = scene.time.addEvent({
+                        delay: scene.ENEMY_SPAWN_INTERVAL, // Usando scene.ENEMY_SPAWN_INTERVAL
+                        callback: scene.spawnEnemy, // Usando scene.spawnEnemy
+                        callbackScope: scene,
+                        loop: true
+                    });
                 }
-            }
-            displayRanking(ranking);
-        }
-
-        function displayRanking(ranking) {
-            const listElement = document.getElementById('ranking-list');
-            listElement.innerHTML = '';
-            if (ranking.length === 0) {
-                listElement.innerHTML = '<li>Nenhum recorde ainda!</li>';
+                if (gameSettings.backgroundMusicEnabled && backgroundMusic) { 
+                    Tone.Transport.start();
+                }
             } else {
-                ranking.forEach(entry => {
-                    const li = document.createElement('li');
-                    li.textContent = `${entry.name} - ${entry.score}`;
-                    listElement.appendChild(li);
-                });
+                scene.scene.pause(); // Pausa a cena Phaser
+                document.getElementById('pauseScreen').style.display = 'flex';
+                if (spawnEnemyEvent) { // Verifica se o evento existe antes de destruir
+                    spawnEnemyEvent.destroy(); // Destroi o evento de spawn
+                    spawnEnemyEvent = null; // Limpa a referência
+                }
+                Tone.Transport.pause();
             }
+            isPaused = !isPaused;
         }
 
-        // --- Funções Utilitárias ---
-        function getLightFromPool() {
-            return lightPool.find(light => !light.visible) || null;
-        }
+        // --- Detecção de dispositivo (mobile vs. desktop) ---
+        const isMobile = () => {
+            return ('ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0);
+        };
 
-        function createExplosionLight(x, y, scene) {
-            const light = getLightFromPool();
-            if (light) {
-                light.setPosition(x, y).setColor(0xffff00).setRadius(350).setVisible(true);
-                scene.tweens.add({
-                    targets: light, intensity: { from: 6.0, to: 0 }, duration: 250, ease: 'Cubic.easeOut',
-                    onComplete: () => light.setVisible(false)
-                });
-            }
-        }
+        // --- Inicialização ---
+        window.onload = function() {
+            // Cria o container do jogo que o Phaser usará
+            const gameContainer = document.createElement('div');
+            gameContainer.id = 'game-container';
+            gameContainer.className = 'game-wrapper'; // Mantém a classe se houver outros estilos para ela
+            document.body.appendChild(gameContainer);
+
+            // Move as telas de overlay HTML para dentro do gameContainer
+            const overlays = ['startScreen', 'settingsScreen', 'pauseScreen', 'gameOverScreen'];
+            overlays.forEach(id => {
+                const screen = document.getElementById(id);
+                if (screen) {
+                    gameContainer.appendChild(screen);
+                }
+            });
+
+            // Garante que apenas a tela de início seja visível inicialmente
+            document.getElementById('startScreen').style.display = 'flex';
+            document.getElementById('settingsScreen').style.display = 'none';
+            document.getElementById('pauseScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+
+            initSounds(); // Inicializa todos os objetos de som do Tone.js aqui
+
+            // Cria a instância do jogo Phaser aqui, após a definição da configuração.
+            game = new Phaser.Game(config);
+        };
     </script>
 </body>
 </html>
