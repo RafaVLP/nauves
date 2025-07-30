@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Space Shooter: Boss Fight</title>
-    <!-- Certifique-se de que o arquivo phaser.min.js (v3.80.1 ou superior) está na mesma pasta -->
+    <!-- CORREÇÃO: Voltando a usar o arquivo local do Phaser -->
     <script src="phaser.min.js"></script>
     <style>
         /* --- Configurações Globais --- */
@@ -13,7 +13,7 @@
             --ui-green: #00ff8c;
             --ui-red: #ff4d4d;
             --ui-yellow-crit: #ffc700;
-            --ui-bg-color: rgba(10, 25, 47, 0.75);
+            --ui-bg-color: rgba(10, 25, 47, 0.85);
             --ui-border-color: rgba(0, 216, 255, 0.5);
             --dark-royal-blue: #061021;
         }
@@ -32,42 +32,44 @@
 
         #game-container {
             position: relative;
-            width: 100%;
-            height: 100vh; /* Ocupa toda a altura da viewport */
+            width: 100vw;
+            height: 100vh;
             cursor: none;
-            display: flex; /* Adicionado para centralizar o canvas */
+            display: flex;
             justify-content: center;
             align-items: center;
-            /* Garante que o contêiner não seja maior que a tela */
-            max-width: 100vw;
-            max-height: 100vh;
+            background-color: var(--dark-royal-blue); /* Fundo para o modo tela cheia */
+        }
+
+        /* Garante que o container ocupe toda a tela no modo fullscreen */
+        #game-container:fullscreen {
+            width: 100%;
+            height: 100%;
         }
 
         canvas {
             border-radius: 15px;
             box-shadow: 0 0 25px rgba(0, 216, 255, 0.6);
             border: 2px solid var(--ui-blue);
-            /* Garante que o canvas se ajuste ao contêiner */
             max-width: 100%;
             max-height: 100%;
             width: auto;
             height: auto;
         }
         
-        /* --- Nova UI Arcade --- */
+        /* --- UI Arcade --- */
         #game-ui {
+            /* CORREÇÃO: A UI agora é posicionada por JS para alinhar com o canvas */
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
             pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            /* AJUSTE: Padding responsivo usando vw e vh */
             padding: clamp(10px, 2.5vw, 25px); 
             box-sizing: border-box;
+            z-index: 10;
+            /* A UI não deve interceptar cliques, exceto os botões */
+            pointer-events: none;
         }
 
         .ui-top, .ui-bottom {
@@ -80,16 +82,17 @@
         
         .ui-bottom {
             align-items: flex-end;
+            gap: clamp(8px, 2vw, 15px);
         }
 
         .info-panel {
             background: var(--ui-bg-color);
             border: 1px solid var(--ui-border-color);
-            /* AJUSTE: Padding responsivo */
             padding: clamp(5px, 1.5vw, 15px) clamp(10px, 2.5vw, 25px);
             color: white;
             font-weight: 700;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 75%);
         }
         
@@ -99,22 +102,18 @@
         }
 
         .info-panel .label {
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(0.7em, 1.8vw, 1em);
             color: var(--ui-blue);
             opacity: 0.8;
         }
 
         .info-panel .value {
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(1.2em, 3vw, 1.8em);
             text-shadow: 0 0 5px var(--ui-green);
         }
 
-        /* --- Barra de Vida do Chefe --- */
         #boss-health-container {
             position: absolute;
-            /* AJUSTE: Posição superior responsiva */
             top: clamp(60px, 8vh, 100px); 
             left: 50%;
             transform: translateX(-50%);
@@ -127,7 +126,6 @@
         }
 
         .boss-health-label {
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(0.9em, 2.2vw, 1.2em);
             font-weight: 700;
             color: var(--ui-red);
@@ -136,7 +134,6 @@
 
         .boss-health-bar-background {
             width: 100%;
-            /* AJUSTE: Altura responsiva */
             height: clamp(15px, 2.5vw, 20px); 
             background-color: var(--ui-bg-color);
             border: 2px solid var(--ui-red);
@@ -156,15 +153,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* Ajusta a largura para não sobrepor os botões, usando calc com clamp */
-            width: calc(100% - clamp(80px, 15vw, 100px)); 
+            flex-grow: 1;
+            min-width: 0; 
             pointer-events: auto;
         }
 
         .bars-container {
             position: relative;
             width: 100%;
-            /* AJUSTE: Altura responsiva */
             height: clamp(20px, 3vw, 25px); 
             margin-bottom: clamp(5px, 1.5vw, 10px);
         }
@@ -186,16 +182,11 @@
             clip-path: polygon(0 5px, 5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px));
         }
 
-        #health-bar-fill {
-            background: linear-gradient(90deg, var(--ui-red), #ff7878);
-        }
+        #health-bar-fill { background: linear-gradient(90deg, var(--ui-red), #ff7878); }
         
         #shield-bar-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 0%;
-            height: 5px;
+            top: 0; left: 0; width: 0%; height: 5px;
             background-color: var(--ui-blue);
             box-shadow: 0 0 8px var(--ui-blue);
             border-radius: 2px;
@@ -205,80 +196,56 @@
         
         .bar-text {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            /* AJUSTE: Font-size responsivo */
+            width: 100%; height: 100%; top: 0; left: 0;
+            display: flex; justify-content: center; align-items: center;
             font-size: clamp(0.8em, 2vw, 1em);
-            font-weight: 700;
-            color: white;
+            font-weight: 700; color: white;
             text-shadow: 1px 1px 2px black;
         }
 
         .stats-icons-container {
             display: flex;
-            /* AJUSTE: Gap responsivo */
             gap: clamp(10px, 2.5vw, 15px);
-            align-items: center;
-            justify-content: center;
-            width: 100%;
+            align-items: center; justify-content: center; width: 100%;
         }
 
         .stat-item {
-            display: flex;
-            align-items: center;
-            /* AJUSTE: Gap e padding responsivos */
+            display: flex; align-items: center;
             gap: clamp(5px, 1.5vw, 8px);
             background: var(--ui-bg-color);
             border: 1px solid var(--ui-border-color);
             padding: clamp(3px, 1vw, 5px) clamp(8px, 2vw, 12px);
-            border-radius: 5px;
-            backdrop-filter: blur(5px);
+            border-radius: 5px; backdrop-filter: blur(5px);
         }
         
         .stat-icon-img {
-            /* AJUSTE: Tamanho responsivo */
             width: clamp(20px, 3.5vw, 24px);
             height: clamp(20px, 3.5vw, 24px);
         }
         
         .stat-item .value {
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(1em, 2.5vw, 1.2em);
-            font-weight: 700;
-            color: var(--ui-green);
+            font-weight: 700; color: var(--ui-green);
         }
 
         #shield-timer-container {
-            display: flex;
-            align-items: center;
-            /* AJUSTE: Gap e padding responsivos */
+            display: flex; align-items: center;
             gap: clamp(5px, 1.5vw, 8px);
             background: var(--ui-bg-color);
             border: 1px solid var(--ui-border-color);
             padding: clamp(3px, 1vw, 5px) clamp(8px, 2vw, 12px);
-            border-radius: 5px;
-            backdrop-filter: blur(5px);
-            /* AJUSTE: Largura responsiva */
+            border-radius: 5px; backdrop-filter: blur(5px);
             width: clamp(60px, 12vw, 70px);
             justify-content: center;
         }
         
         #shield-timer {
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(1em, 2.5vw, 1.2em);
-            font-weight: 700;
-            color: var(--ui-blue);
+            font-weight: 700; color: var(--ui-blue);
             text-shadow: 0 0 5px var(--ui-blue);
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
+            opacity: 0; transition: opacity 0.3s ease-in-out;
         }
         #shield-timer-icon {
-             /* AJUSTE: Tamanho responsivo */
              width: clamp(20px, 3.5vw, 24px);
              height: clamp(20px, 3.5vw, 24px);
              opacity: 0.5;
@@ -287,182 +254,96 @@
         /* Telas de Overlay */
         .overlay-screen {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex; justify-content: center; align-items: center;
             flex-direction: column;
-            opacity: 0;
-            visibility: hidden;
+            opacity: 0; visibility: hidden;
             transition: opacity 0.5s, visibility 0.5s;
             backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
             z-index: 100;
         }
 
         .overlay-panel {
             background: var(--ui-bg-color);
             border: 2px solid var(--ui-border-color);
-            /* AJUSTE: Padding responsivo */
-            padding: clamp(20px, 5vw, 30px);
+            padding: clamp(20px, 5vw, 40px);
             border-radius: 10px;
             text-align: center;
             box-shadow: 0 0 20px var(--ui-blue);
-            /* AJUSTE: Largura máxima para telas maiores */
-            max-width: 90%; 
+            max-width: 90%;
+            width: 500px;
         }
 
         .overlay-title {
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(2em, 7vw, 3em);
-            font-weight: 700;
-            margin: 0;
+            font-weight: 700; margin: 0;
         }
 
         #game-over-title { color: var(--ui-red); text-shadow: 0 0 10px var(--ui-red); }
         #stage-clear-title { color: var(--ui-green); text-shadow: 0 0 10px var(--ui-green); }
         #pause-title { color: var(--ui-blue); text-shadow: 0 0 10px var(--ui-blue); }
+        #start-title { color: var(--ui-blue); text-shadow: 0 0 10px var(--ui-blue); margin-bottom: 20px;}
 
         #final-score-label {
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(1em, 2.5vw, 1.2em);
             color: var(--ui-blue);
             margin-top: clamp(15px, 3vw, 20px);
         }
 
         #final-score-value {
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(2em, 6vw, 2.5em);
             color: var(--ui-green);
             text-shadow: 0 0 8px var(--ui-green);
         }
 
         .overlay-button {
-            /* AJUSTE: Margin e padding responsivos */
             margin-top: clamp(20px, 5vw, 30px);
-            padding: clamp(8px, 2.5vw, 10px) clamp(20px, 5vw, 30px);
-            /* AJUSTE: Font-size responsivo */
-            font-size: clamp(1em, 2.5vw, 1.2em);
+            padding: clamp(12px, 3vw, 15px) clamp(25px, 6vw, 40px);
+            font-size: clamp(1.1em, 3vw, 1.4em);
             font-weight: 700;
             color: #0a192f;
             background-color: var(--ui-blue);
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            pointer-events: all;
-            transition: background-color 0.2s, box-shadow 0.2s;
+            border: none; border-radius: 5px;
+            cursor: pointer; pointer-events: all;
+            transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s;
         }
         .overlay-button:hover {
             background-color: #fff;
             box-shadow: 0 0 15px #fff;
+            transform: scale(1.05);
         }
         
-        /* Ranking */
         #ranking-container { margin-top: clamp(15px, 4vw, 25px); }
         #ranking-title { 
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(1.3em, 3.5vw, 1.5em); 
             color: var(--ui-blue); 
             margin-bottom: clamp(5px, 1.5vw, 10px); 
         }
         #ranking-list { list-style: none; padding: 0; margin: 0; }
         #ranking-list li { 
-            /* AJUSTE: Font-size responsivo */
             font-size: clamp(0.9em, 2.2vw, 1.1em); 
             padding: 2px 0; 
         }
 
-        /* MUDANÇA: Botões de Controle (Pause/Fullscreen) */
         .control-button-container {
-            /* AJUSTE: Largura responsiva */
-            width: clamp(40px, 8vw, 45px); 
             pointer-events: auto;
+            flex-shrink: 0;
         }
         .control-button {
-            /* AJUSTE: Tamanho responsivo */
-            width: clamp(35px, 7vw, 40px);
-            height: clamp(35px, 7vw, 40px);
+            width: clamp(40px, 9vw, 45px);
+            height: clamp(40px, 9vw, 45px);
             background-color: var(--ui-bg-color);
             border: 1px solid var(--ui-border-color);
             border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; justify-content: center; align-items: center;
             cursor: pointer;
         }
         .control-button svg { 
-            /* AJUSTE: Tamanho responsivo */
-            width: clamp(18px, 4vw, 20px); 
-            height: clamp(18px, 4vw, 20px); 
+            width: clamp(20px, 5vw, 22px); 
+            height: clamp(20px, 5vw, 22px); 
             fill: var(--ui-blue); 
-        }
-
-        /* Media Query para telas menores (celulares) */
-        @media (max-width: 600px) {
-            #game-ui {
-                padding: 1.5vw; /* Reduz um pouco mais o padding em telas muito pequenas */
-            }
-
-            .info-panel {
-                padding: 1vw 2vw;
-            }
-
-            .info-panel .label {
-                font-size: 0.65em;
-            }
-
-            .info-panel .value {
-                font-size: 1.1em;
-            }
-
-            .player-stats-panel {
-                width: calc(100% - 12vw); /* Ajusta para telas muito pequenas */
-            }
-
-            .stat-item {
-                padding: 2px 5px;
-            }
-
-            .stat-icon-img {
-                width: 18px;
-                height: 18px;
-            }
-
-            .stat-item .value {
-                font-size: 0.9em;
-            }
-
-            #shield-timer-container {
-                width: 50px;
-            }
-
-            #shield-timer {
-                font-size: 1em;
-            }
-
-            .overlay-panel {
-                padding: 15px;
-            }
-
-            .overlay-title {
-                font-size: 2.2em;
-            }
-
-            .overlay-button {
-                padding: 8px 20px;
-                font-size: 1em;
-            }
-
-            #ranking-title {
-                font-size: 1.2em;
-            }
-
-            #ranking-list li {
-                font-size: 0.9em;
-            }
         }
     </style>
 </head>
@@ -471,6 +352,7 @@
         <!-- Phaser renderiza o canvas aqui -->
         
         <div id="game-ui">
+            <!-- UI Superior -->
             <div class="ui-top">
                 <div class="info-panel">
                     <div class="label">SCORE</div>
@@ -492,10 +374,12 @@
                 </div>
             </div>
 
+            <!-- UI Inferior -->
             <div class="ui-bottom">
                 <div class="control-button-container">
                     <div id="fullscreen-button" class="control-button">
-                        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                        <svg id="fullscreen-enter-icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                        <svg id="fullscreen-exit-icon" viewBox="0 0 24 24" style="display: none;"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
                     </div>
                 </div>
                 
@@ -508,6 +392,7 @@
                     </div>
                     <div class="stats-icons-container">
                         <div class="stat-item">
+                            <!-- CORREÇÃO: Voltando para o caminho local do asset -->
                             <img id="damage-icon" class="stat-icon-img" src="Damage_Bonus.png" alt="Damage Icon"/>
                             <span class="value" id="damage-value">1</span>
                         </div>
@@ -530,6 +415,14 @@
             </div>
         </div>
         
+        <!-- Telas de Overlay -->
+        <div id="start-screen" class="overlay-screen" style="visibility: visible; opacity: 1;">
+            <div class="overlay-panel">
+                <h1 id="start-title" class="overlay-title">SPACE SHOOTER</h1>
+                <button id="start-game-button" class="overlay-button">INICIAR JOGO</button>
+            </div>
+        </div>
+
         <div id="game-over-screen" class="overlay-screen">
             <div id="game-over-panel" class="overlay-panel">
                 <h1 id="game-over-title" class="overlay-title">GAME OVER</h1>
@@ -591,16 +484,17 @@
             bossHealthContainerElement, bossHealthBarFillElement;
         
         let isPaused = false;
+        let isGameStarted = false;
 
         // --- Configuração do Phaser ---
         const config = {
             type: Phaser.AUTO,
-            width: window.innerWidth, // Define a largura inicial como a largura da janela
-            height: window.innerHeight, // Define a altura inicial como a altura da janela
+            width: 450,
+            height: 800,
             parent: 'game-container',
             backgroundColor: '#061021',
             scale: {
-                mode: Phaser.Scale.RESIZE, // Alterado para RESIZE para melhor adaptação
+                mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH
             },
             physics: {
@@ -622,6 +516,7 @@
         // --- Funções Principais do Phaser ---
 
         function preload() {
+            // CORREÇÃO: Voltando a usar caminhos locais para os assets
             this.load.image('player_sprite', 'player1.png');
             this.load.image('enemy1_sprite', 'enemy1.png');
             this.load.image('boss_sprite', 'boss.png'); 
@@ -648,16 +543,39 @@
             setupInput.call(this);
             setupCollisions.call(this);
 
-            // Listener para redimensionamento da janela
-            this.scale.on('resize', resizeGame, this);
-            resizeGame.call(this, this.scale.gameSize); // Chama a função de redimensionamento na criação para ajustar o canvas
+            // NOVO: Lógica para sincronizar a UI com o Canvas
+            const uiContainer = document.getElementById('game-ui');
+            const canvas = this.sys.game.canvas;
+
+            const updateUiPosition = () => {
+                // Adicionado um pequeno delay para garantir que o DOM foi atualizado
+                setTimeout(() => {
+                    const bounds = canvas.getBoundingClientRect();
+                    if (bounds.width > 0 && bounds.height > 0) {
+                        uiContainer.style.top = `${bounds.top}px`;
+                        uiContainer.style.left = `${bounds.left}px`;
+                        uiContainer.style.width = `${bounds.width}px`;
+                        uiContainer.style.height = `${bounds.height}px`;
+                    }
+                }, 50); 
+            };
+
+            // Chamada inicial e nos eventos de redimensionamento
+            updateUiPosition();
+            this.scale.on('resize', updateUiPosition);
+            document.addEventListener('fullscreenchange', updateUiPosition);
+
+
+            // Pausa o jogo no início
+            this.physics.pause();
+            this.time.paused = true;
         }
 
         function update() {
-            if (!player.active || isPaused) return;
+            if (!isGameStarted || !player.active || isPaused) return;
 
             stars.children.each(star => {
-                if (star && star.y > this.scale.height + 10) star.destroy(); // Usa this.scale.height
+                if (star && star.y > config.height + 10) star.destroy();
             });
             
             if (player.shieldSprite) player.shieldSprite.setPosition(player.x, player.y);
@@ -667,18 +585,6 @@
             }
         }
         
-        // Função para redimensionar o jogo e o canvas
-        function resizeGame(gameSize) {
-            const { width, height } = gameSize;
-            this.cameras.main.setSize(width, height);
-            // Atualiza a posição do player e outros elementos se necessário
-            if (player) {
-                player.x = width / 2;
-                player.y = height - 100;
-            }
-            // Se houver elementos que dependem da largura/altura do jogo, ajuste-os aqui
-        }
-
         // --- Funções de Setup ---
 
         function setupVisuals() {
@@ -718,8 +624,7 @@
         }
 
         function setupPlayer() {
-            // Posiciona o player com base na largura e altura atual do jogo
-            player = this.add.sprite(this.scale.width / 2, this.scale.height - 100, 'player_sprite');
+            player = this.add.sprite(config.width / 2, config.height - 100, 'player_sprite');
             player.shieldSprite = this.add.sprite(player.x, player.y, 'shield_glow_particle')
                 .setBlendMode('ADD')
                 .setDepth(player.depth - 1)
@@ -746,11 +651,10 @@
         }
 
         function setupUI() {
-            // Mapeamento de elementos
             const ids = ['score-value', 'level-value', 'stage-value', 'health-bar-fill', 'health-bar-text', 'shield-bar-overlay', 'shield-timer', 'damage-value', 'cannons-value', 'boss-health-container', 'boss-health-bar-fill'];
             [scoreTextElement, baseEnemyLevelUITextElement, stageTextElement, healthBarFillElement, healthTextElement, shieldBarOverlayElement, shieldTimerElement, damageTextElement, extraShotsTextElement, bossHealthContainerElement, bossHealthBarFillElement] = ids.map(id => document.getElementById(id));
             
-            // Event Listeners dos botões
+            document.getElementById('start-game-button').addEventListener('click', () => startGame.call(this));
             document.getElementById('restart-button').addEventListener('click', () => {
                 document.getElementById('game-over-screen').style.opacity = '0';
                 document.getElementById('game-over-screen').style.visibility = 'hidden';
@@ -762,14 +666,8 @@
             document.getElementById('resume-button').addEventListener('click', () => togglePause.call(this));
             document.getElementById('pause-button').addEventListener('click', () => togglePause.call(this));
             
-            // Adiciona listener para o botão de fullscreen
-            document.getElementById('fullscreen-button').addEventListener('click', () => {
-                if (this.scale.isFullscreen) {
-                    this.scale.stopFullscreen();
-                } else {
-                    this.scale.startFullscreen();
-                }
-            });
+            document.getElementById('fullscreen-button').addEventListener('click', toggleApiFullscreen);
+            document.addEventListener('fullscreenchange', updateFullscreenButton);
 
             updateUI(); 
         }
@@ -783,7 +681,7 @@
 
         function setupInput() {
             this.input.on('pointermove', (pointer) => {
-                // Remove a condição !pointer.isDown para permitir movimento contínuo no toque
+                if (this.sys.game.device.input.touch && !pointer.isDown) return;
                 if(player.active) {
                     this.tweens.add({
                         targets: player,
@@ -794,8 +692,6 @@
                     });
                 }
             }, this);
-
-            // Pausar com a barra de espaço
             this.input.keyboard.on('keydown-SPACE', () => togglePause.call(this));
         }
 
@@ -867,7 +763,7 @@
                         this.body.setCollideWorldBounds(false);
                         this.scene.time.delayedCall(1000, () => this.kill());
                     }
-                } else if (this.y < -20 || this.y > this.scene.scale.height + 20 || this.x < -20 || this.x > this.scene.scale.width + 20) {
+                } else if (this.y < -20 || this.y > config.height + 20 || this.x < -20 || this.x > config.width + 20) {
                     this.kill();
                 }
             }
@@ -939,7 +835,7 @@
                 super.preUpdate(time, delta);
                 if(this.active) {
                     this.updateHealthBar();
-                    if (this.y > this.scene.scale.height + this.displayHeight) this.kill(); // Usa this.scene.scale.height
+                    if (this.y > config.height + this.displayHeight) this.kill();
                 }
             }
         }
@@ -1028,7 +924,7 @@
                 this.scene.tweens.add({
                     targets: this, y: 150, duration: 2000, ease: 'Cubic.easeOut',
                     onComplete: () => {
-                        this.horizontalTween = this.scene.tweens.add({ targets: this, x: { from: 80, to: this.scene.scale.width - 80 }, ease: 'Sine.easeInOut', duration: 3000 / speedMultiplier, repeat: -1, yoyo: true }); // Usa this.scene.scale.width
+                        this.horizontalTween = this.scene.tweens.add({ targets: this, x: { from: 80, to: config.width - 80 }, ease: 'Sine.easeInOut', duration: 3000 / speedMultiplier, repeat: -1, yoyo: true });
                         this.verticalTween = this.scene.tweens.add({ targets: this, y: { from: 120, to: 220 }, ease: 'Sine.easeInOut', duration: 1875 / speedMultiplier, repeat: -1, yoyo: true });
                     }
                 });
@@ -1165,7 +1061,7 @@
                 if (this.active && !this.isBoss) {
                     this.updateHealthBar();
                     this.levelText.setPosition(this.x, this.y - this.displayHeight / 2 - 35);
-                    if (this.y > this.scene.scale.height + 50) this.kill(); // Usa this.scene.scale.height
+                    if (this.y > config.height + 50) this.kill();
                 }
             }
         }
@@ -1187,11 +1083,23 @@
 
             preUpdate(time, delta) {
                 super.preUpdate(time, delta);
-                if (this.y > this.scene.scale.height + 50) this.disableBody(true, true); // Usa this.scene.scale.height
+                if (this.y > config.height + 50) this.disableBody(true, true);
             }
         }
 
         // --- Funções de Lógica do Jogo ---
+
+        function startGame() {
+            const startScreen = document.getElementById('start-screen');
+            startScreen.style.opacity = '0';
+            startScreen.style.visibility = 'hidden';
+
+            isGameStarted = true;
+            this.physics.resume();
+            this.time.paused = false;
+
+            toggleApiFullscreen(true);
+        }
 
         function firePlayerBullet() {
             if (!player.active) return;
@@ -1211,7 +1119,8 @@
         }
 
         function spawnStar() {
-            const x = Phaser.Math.Between(0, this.scale.width); // Usa this.scale.width
+            if (!isGameStarted) return;
+            const x = Phaser.Math.Between(0, config.width);
             const star = stars.create(x, -10, 'star_particle');
             if (star) {
                 star.setVelocityY(Phaser.Math.Between(50, 200)).setScale(Phaser.Math.FloatBetween(0.2, 1)).setAlpha(star.scale * 0.8);
@@ -1220,14 +1129,14 @@
 
         function spawnEnemy() {
             if (bossFightActive) return;
-            const x = Phaser.Math.Between(50, this.scale.width - 50); // Usa this.scale.width
+            const x = Phaser.Math.Between(50, config.width - 50);
             const enemyLevelToSpawn = (baseEnemyLevel <= 3) ? baseEnemyLevel : Phaser.Math.Between(baseEnemyLevel - 2, baseEnemyLevel);
             const enemy = enemies.get();
             if (enemy) enemy.spawn(x, -50, false, enemyLevelToSpawn);
         }
         
         function spawnMeteor() {
-            const x = Phaser.Math.Between(50, this.scale.width - 50); // Usa this.scale.width
+            const x = Phaser.Math.Between(50, config.width - 50);
             const meteor = meteors.get();
             if (meteor) meteor.spawn(x, -100);
         }
@@ -1240,13 +1149,13 @@
 
             if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'flex';
 
-            let warningText = this.add.text(this.scale.width/2, this.scale.height/2, 'WARNING!', { fontSize: '60px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 8 }).setOrigin(0.5).setDepth(200).setAlpha(0); // Usa this.scale.width e this.scale.height
+            let warningText = this.add.text(config.width/2, config.height/2, 'WARNING!', { fontSize: '60px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 8 }).setOrigin(0.5).setDepth(200).setAlpha(0);
             this.tweens.add({
                 targets: warningText, alpha: 1, scale: {from: 2, to: 1}, duration: 500, yoyo: true, hold: 1500,
                 onComplete: () => {
                     warningText.destroy();
                     bossObject = enemies.get();
-                    if (bossObject) bossObject.spawn(this.scale.width / 2, -100, true); // Usa this.scale.width
+                    if (bossObject) bossObject.spawn(config.width / 2, -100, true);
                 }
             });
         }
@@ -1408,7 +1317,7 @@
             if (!player.active) return;
             player.setActive(false);
             this.physics.pause();
-            this.time.removeAllEvents();
+            this.time.pause();
             createExplosionLight(player.x, player.y, this);
             if (explosionEmitter) explosionEmitter.explode(50, player.x, player.y);
             if(player.shieldSprite) player.shieldSprite.setVisible(false);
@@ -1432,6 +1341,7 @@
             bossFightActive = false; bossObject = null;
             currentStage = 1; baseEnemyLevel = 1; scoreToNextBoss = 100;
             isPaused = false;
+            isGameStarted = false; 
             
             if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
         }
@@ -1439,14 +1349,17 @@
         // --- Funções de Controle ---
 
         function togglePause() {
+            if (!isGameStarted) return; 
             isPaused = !isPaused;
             const pauseScreen = document.getElementById('pause-screen');
             if (isPaused) {
                 this.scene.pause();
+                this.time.paused = true;
                 pauseScreen.style.visibility = 'visible';
                 pauseScreen.style.opacity = '1';
             } else {
                 this.scene.resume();
+                this.time.paused = false;
                 pauseScreen.style.visibility = 'hidden';
                 pauseScreen.style.opacity = '0';
             }
@@ -1501,6 +1414,49 @@
                     targets: light, intensity: { from: 6.0, to: 0 }, duration: 250, ease: 'Cubic.easeOut',
                     onComplete: () => light.setVisible(false)
                 });
+            }
+        }
+
+        // Funções para controlar a Tela Cheia (Fullscreen)
+        function toggleApiFullscreen(forceEnter = false) {
+            const container = document.getElementById('game-container');
+            const isFullscreen = !!document.fullscreenElement;
+
+            if (!isFullscreen || forceEnter === true) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen().catch(err => {
+                        console.error(`Erro ao tentar entrar em tela cheia: ${err.message} (${err.name})`);
+                    });
+                } else if (container.mozRequestFullScreen) { // Firefox
+                    container.mozRequestFullScreen();
+                } else if (container.webkitRequestFullscreen) { // Chrome, Safari, Opera
+                    container.webkitRequestFullscreen();
+                } else if (container.msRequestFullscreen) { // IE/Edge
+                    container.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        function updateFullscreenButton() {
+            const isFullscreen = !!document.fullscreenElement;
+            const enterIcon = document.getElementById('fullscreen-enter-icon');
+            const exitIcon = document.getElementById('fullscreen-exit-icon');
+            if (isFullscreen) {
+                enterIcon.style.display = 'none';
+                exitIcon.style.display = 'block';
+            } else {
+                enterIcon.style.display = 'block';
+                exitIcon.style.display = 'none';
             }
         }
     </script>
