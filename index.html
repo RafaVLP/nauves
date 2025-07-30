@@ -654,7 +654,6 @@
 
         let performanceMode = false;
         let musicEnabled = true;
-        // ALTERADO: Variáveis de som separadas
         let sfxShotEnabled = true;
         let sfxExplosionEnabled = true;
 
@@ -662,16 +661,15 @@
 
         let lightPool = [];
         const MAX_LIGHTS = 50;
-        let explosionEmitter, sparkEmitter; // NOVO: sparkEmitter
+        let explosionEmitter, sparkEmitter; 
 
-        // ALTERADO: Novos synths
         let playerShootSynth, explosionSynth, coinSynth, powerupSynth;
         let currentStageMusic, bossMusicSound;
 
         let isGameOver = false;
         let isStageClearing = false;
 
-        let shopPrices = {}; // Será inicializado a partir de GAME_CONFIG
+        let shopPrices = {}; 
         let permanentHealthBonus = 1;
         let permanentShieldBonus = 0;
         let permanentCritBonus = 0;
@@ -708,7 +706,6 @@
         function loadSettings() {
             performanceMode = JSON.parse(localStorage.getItem('spaceShooterPerformanceMode')) ?? isMobileDevice();
             musicEnabled = JSON.parse(localStorage.getItem('spaceShooterMusicEnabled')) ?? true;
-            // ALTERADO: Carregar configurações de som separadas
             sfxShotEnabled = JSON.parse(localStorage.getItem('spaceShooterSfxShotEnabled')) ?? true;
             sfxExplosionEnabled = JSON.parse(localStorage.getItem('spaceShooterSfxExplosionEnabled')) ?? true;
 
@@ -788,11 +785,6 @@
         }
 
         function create() {
-            // A ordem é importante aqui. Resetar variáveis primeiro.
-            if (!isGameStarted) { // Só reseta na primeira carga, não em reinícios
-                resetGameVariables();
-            }
-
             setupAudio.call(this);
             setupVisuals.call(this);
             setupPlayer.call(this);
@@ -826,20 +818,9 @@
             this.scale.on('resize', fullResize);
             document.addEventListener('fullscreenchange', fullResize);
 
-            // CORREÇÃO DO BUG DE REINÍCIO
-            if (isGameStarted) {
-                // Se for um reinício, o jogo começa imediatamente
-                this.physics.resume();
-                this.time.paused = false;
-                if (musicEnabled) {
-                    playStageMusic.call(this);
-                }
-                updateCursorVisibility(false);
-            } else {
-                // Se for a primeira vez, espera o jogador clicar em "Iniciar"
-                this.physics.pause();
-                this.time.paused = true;
-            }
+            // CORREÇÃO DO BUG DE REINÍCIO: A lógica agora espera o clique no botão de Iniciar
+            this.physics.pause();
+            this.time.paused = true;
         }
 
         function update() {
@@ -871,14 +852,12 @@
                 volume: -10
             }).toDestination();
 
-            // NOVO: Som de coleta de moeda
             coinSynth = new Tone.Synth({
                 oscillator: { type: 'sine' },
                 envelope: { attack: 0.001, decay: 0.1, sustain: 0.1, release: 0.1 },
                 volume: -12
             }).toDestination();
 
-            // NOVO: Som de coleta de power-up
             powerupSynth = new Tone.PolySynth(Tone.Synth, {
                 oscillator: { type: 'fmsine' },
                 envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.1 },
@@ -895,12 +874,29 @@
             document.head.appendChild(interFont);
             
             const graphics = this.add.graphics();
-            graphics.fillStyle(0xffd700, 1); // Cor de ouro
+            
+            // Textura da moeda
+            graphics.fillStyle(0xffd700, 1);
             graphics.fillCircle(4, 4, 4);
             graphics.fillStyle(0xffff00, 0.7);
             graphics.fillCircle(4, 4, 2.5);
             graphics.generateTexture('coin_particle', 8, 8);
+            
+            // NOVO: Textura do tiro do chefe
+            graphics.clear();
+            graphics.fillStyle(0xff0000, 1);
+            graphics.fillCircle(8, 8, 8);
+            graphics.fillStyle(0xff9999, 1);
+            graphics.fillCircle(8, 8, 5);
+            graphics.generateTexture('boss_bullet_sprite', 16, 16);
 
+            // NOVO: Textura da faísca dourada
+            graphics.clear();
+            graphics.fillStyle(0xffd700, 1);
+            graphics.fillRect(0, 0, 2, 2);
+            graphics.generateTexture('gold_sparkle', 2, 2);
+
+            // Outras texturas
             graphics.clear();
             graphics.fillStyle(0xffffff, 1);
             graphics.fillCircle(2, 2, 2);
@@ -931,7 +927,6 @@
                 emitting: false
             });
             
-            // NOVO: Emissor de faíscas de dano
             sparkEmitter = this.add.particles(0, 0, 'flares', {
                 frame: [ 'white', 'yellow' ],
                 lifespan: 150,
@@ -981,14 +976,16 @@
             
             // CORREÇÃO DO BUG DE REINÍCIO
             document.getElementById('restart-button').addEventListener('click', () => {
-                updateCursorVisibility(false);
                 document.getElementById('game-over-screen').style.opacity = '0';
                 document.getElementById('game-over-screen').style.visibility = 'hidden';
 
+                const startScreen = document.getElementById('start-screen');
+                startScreen.style.visibility = 'visible';
+                startScreen.style.opacity = '1';
+
                 this.sound.stopAll();
                 
-                // Marca que o próximo 'create' é um reinício
-                isGameStarted = true; 
+                resetGameVariables();
                 
                 this.scene.restart();
             });
@@ -1044,16 +1041,18 @@
         class Bullet extends Phaser.Physics.Arcade.Sprite {
             constructor(scene, x, y) {
                 super(scene, x, y, null);
-                this.type = ''; this.damage = 0; this.light = null; this.bounces = 0; this.justBounced = false;
+                this.damage = 0; this.light = null; this.bounces = 0; this.justBounced = false;
             }
 
-            fire(x, y, vx, vy, type, damage, bounces = 0, tint = 0xffffff) {
-                Object.assign(this, { type, damage, bounces });
-                this.setTexture(type === 'playerBullet' ? 'player_bullet_sprite' : 'enemy_bullet_sprite');
+            fire(x, y, vx, vy, textureKey, damage, bounces = 0, tint = 0xffffff) {
+                this.damage = damage;
+                this.bounces = bounces;
+                this.setTexture(textureKey);
                 this.enableBody(true, x, y, true, true);
                 
-                const bulletHitboxSize = BULLET_SPRITE_WIDTH * 0.97;
-                this.body.setSize(bulletHitboxSize, bulletHitboxSize).setOffset((BULLET_SPRITE_WIDTH - bulletHitboxSize) / 2, (BULLET_SPRITE_HEIGHT - bulletHitboxSize) / 2);
+                // Ajusta o hitbox para ser um círculo baseado na menor dimensão da textura
+                const size = Math.min(this.width, this.height);
+                this.body.setCircle(size / 2);
 
                 this.setVelocity(vx, vy);
                 this.setAngle(Phaser.Math.RadToDeg(Math.atan2(vy, vx)) + 90);
@@ -1065,7 +1064,7 @@
                     this.setPipeline('Light2D');
                     this.light = getLightFromPool();
                     if (this.light) {
-                        const color = this.type === 'playerBullet' ? 0x00ffff : 0xff8c00;
+                        const color = textureKey === 'player_bullet_sprite' ? 0x00ffff : 0xff8c00;
                         this.light.setPosition(x, y).setColor(color).setRadius(250).setVisible(true);
                         this.scene.tweens.add({ targets: this.light, intensity: 1.5, duration: 100, ease: 'Sine.easeIn' });
                     }
@@ -1115,9 +1114,12 @@
                 this.health = 1; this.initialHealth = 1;
                 this.healthBarBackground = scene.add.rectangle(0, 0, 1, 5, 0x555555).setOrigin(0.5, 0.5);
                 this.healthBar = scene.add.rectangle(0, 0, 1, 5, 0xcccccc).setOrigin(0.5, 0.5);
+                this.isCoinMeteor = false;
+                this.trailEmitter = null;
             }
 
-            spawn(x, y) {
+            spawn(x, y, isCoinMeteor = false) {
+                this.isCoinMeteor = isCoinMeteor;
                 const meteorType = Phaser.Math.Between(1, 10);
                 const num = meteorType < 10 ? `0${meteorType}` : meteorType;
                 this.setTexture(`Meteor_${num}`);
@@ -1134,6 +1136,21 @@
                 this.setVelocityY(Phaser.Math.Between(80, 150)).setAngularVelocity(Phaser.Math.Between(-50, 50));
                 if (!performanceMode) {
                     this.setPipeline('Light2D');
+                }
+
+                if (this.isCoinMeteor) {
+                    this.setTint(0xffd700); // Tonalidade dourada
+                    if (!performanceMode) {
+                        this.trailEmitter = this.scene.add.particles(0, 0, 'gold_sparkle', {
+                            speed: 10,
+                            scale: { start: 1, end: 0 },
+                            blendMode: 'ADD',
+                            lifespan: 500
+                        });
+                        this.trailEmitter.startFollow(this);
+                    }
+                } else {
+                    this.clearTint();
                 }
 
                 this.healthBarBackground.setVisible(true); this.healthBar.setVisible(true);
@@ -1155,9 +1172,13 @@
                 if (!performanceMode) createExplosionLight(this.x, this.y, this.scene);
                 if (explosionEmitter) explosionEmitter.explode(performanceMode ? 8 : 15, this.x, this.y);
                 
-                // Drop de itens
-                if (Math.random() < GAME_CONFIG.coinMeteorChance) {
-                    spawnCoins(this.scene, this.x, this.y, 25, this.body.velocity);
+                if (this.trailEmitter) {
+                    this.trailEmitter.destroy();
+                    this.trailEmitter = null;
+                }
+                
+                if (this.isCoinMeteor) {
+                    spawnCoins(this.scene, this.x, this.y, GAME_CONFIG.specialMeteorCoinDrop, this.body.velocity);
                 }
                 this.dropPowerUp();
 
@@ -1263,6 +1284,10 @@
                 this.setTexture('boss_sprite');
                 this.setScale(0.3).setAlpha(1).setAngle(180).setDepth(10);
                 
+                // NOVO: Cores diferentes para o chefe
+                const bossColors = [0xff8888, 0x88ff88, 0x8888ff, 0xffff88, 0xff88ff, 0x88ffff];
+                this.setTint(bossColors[(currentStage - 1) % bossColors.length]);
+                
                 const healthMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
                 const damageMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
                 const speedMultiplier = Math.pow(1.2, currentStage - 1);
@@ -1294,7 +1319,7 @@
             fireBullet() {
                 if (!this.active) return;
                 const bullet = enemyBullets.get();
-                if (bullet) bullet.fire(this.x, this.y + this.displayHeight / 2 + 10, 0, this.speed * 2.5, 'enemyBullet', this.damage);
+                if (bullet) bullet.fire(this.x, this.y + this.displayHeight / 2 + 10, 0, this.speed * 2.5, 'enemy_bullet_sprite', this.damage);
             }
 
             fireBossPattern() {
@@ -1312,7 +1337,7 @@
                 const vx = Math.cos(angle) * 300;
                 const vy = Math.sin(angle) * 300;
                 const bullet = bossBullets.get();
-                if (bullet) bullet.fire(this.x, this.y, vx, vy, 'enemyBullet', this.damage);
+                if (bullet) bullet.fire(this.x, this.y, vx, vy, 'boss_bullet_sprite', this.damage, 0, this.tintTopLeft);
             }
 
             fireSpreadShot() {
@@ -1322,7 +1347,7 @@
                     const vx = Math.cos(angle) * 250;
                     const vy = Math.sin(angle) * 250;
                     const bullet = bossBullets.get();
-                    if (bullet) bullet.fire(this.x, this.y, vx, vy, 'enemyBullet', this.damage);
+                    if (bullet) bullet.fire(this.x, this.y, vx, vy, 'boss_bullet_sprite', this.damage, 0, this.tintTopLeft);
                 }
             }
 
@@ -1330,7 +1355,7 @@
                 const bullet = bossBullets.get();
                 if (bullet) {
                     const vx = Phaser.Math.Between(1,2) === 1 ? -200 : 200;
-                    bullet.fire(this.x, this.y, vx, 200, 'enemyBullet', this.damage, 2);
+                    bullet.fire(this.x, this.y, vx, 200, 'boss_bullet_sprite', this.damage, 2, this.tintTopLeft);
                 }
             }
 
@@ -1341,8 +1366,9 @@
                 this.setTint(0xff0000);
                 this.scene.time.delayedCall(100, () => {
                     if (this.active) {
-                       this.clearTint();
-                       if (this.isEnraged) this.setTint(0xff6666);
+                       const bossColors = [0xff8888, 0x88ff88, 0x8888ff, 0xffff88, 0xff88ff, 0x88ffff];
+                       const originalColor = this.isEnraged ? 0xff6666 : bossColors[(currentStage - 1) % bossColors.length];
+                       this.setTint(originalColor);
                     }
                 });
 
@@ -1446,7 +1472,6 @@
                 this.type = type;
                 this.setTexture('powerup_' + type);
                 
-                // ALTERADO: Power-ups seguem a trajetória do inimigo
                 if (initialVelocity) {
                     this.setVelocity(initialVelocity.x * 0.5, initialVelocity.y * 0.5);
                 } else {
@@ -1477,7 +1502,6 @@
                 this.attracted = false;
                 this.enableBody(true, x, y, true, true);
                 
-                // ALTERADO: Moedas seguem a trajetória do inimigo
                 if (initialVelocity) {
                     const randomFactorX = Phaser.Math.FloatBetween(-40, 40);
                     const randomFactorY = Phaser.Math.FloatBetween(-20, 50);
@@ -1491,7 +1515,6 @@
                 this.body.setAngularVelocity(Phaser.Math.Between(-200, 200));
                 this.body.setDrag(10, 10);
                 this.body.setBounce(0.5);
-                // ALTERADO: Tamanho da moeda aumentado em 10%
                 this.setScale(1.265); 
                 this.scene.tweens.add({
                     targets: this,
@@ -1501,7 +1524,6 @@
                     repeat: -1,
                     ease: 'Sine.easeInOut'
                 });
-                // REMOVIDO: Luz da moeda
             }
 
             preUpdate(time, delta) {
@@ -1551,15 +1573,15 @@
             const baseVy = GAME_CONFIG.player.bulletSpeed;
             const bulletSpawnY = player.y - player.displayHeight / 2;
             let bullet = playerBullets.get();
-            if (bullet) bullet.fire(player.x, bulletSpawnY, 0, baseVy, 'playerBullet', playerDamage, 0, playerBulletTint);
+            if (bullet) bullet.fire(player.x, bulletSpawnY, 0, baseVy, 'player_bullet_sprite', playerDamage, 0, playerBulletTint);
             const offset = 20;
             if (extraShots >= 1) {
                 let bulletLeft = playerBullets.get();
-                if (bulletLeft) bulletLeft.fire(player.x - offset, bulletSpawnY, 0, baseVy, 'playerBullet', playerDamage, 0, playerBulletTint);
+                if (bulletLeft) bulletLeft.fire(player.x - offset, bulletSpawnY, 0, baseVy, 'player_bullet_sprite', playerDamage, 0, playerBulletTint);
             }
             if (extraShots >= 2) {
                 let bulletRight = playerBullets.get();
-                if (bulletRight) bulletRight.fire(player.x + offset, bulletSpawnY, 0, baseVy, 'playerBullet', playerDamage, 0, playerBulletTint);
+                if (bulletRight) bulletRight.fire(player.x + offset, bulletSpawnY, 0, baseVy, 'player_bullet_sprite', playerDamage, 0, playerBulletTint);
             }
         }
 
@@ -1583,7 +1605,8 @@
         function spawnMeteor() {
             const x = Phaser.Math.Between(50, game.config.width - 50);
             const meteor = meteors.get();
-            if (meteor) meteor.spawn(x, -100);
+            const isCoinMeteor = Math.random() < GAME_CONFIG.coinMeteorChance;
+            if (meteor) meteor.spawn(x, -100, isCoinMeteor);
         }
 
         function startBossFight() {
@@ -1669,7 +1692,6 @@
         function handlePlayerHit(bullet, target) {
             if (!bullet.active || !target.active) return;
 
-            // NOVO: Efeito de faísca
             if (sparkEmitter) sparkEmitter.explode(5, bullet.x, bullet.y);
 
             bullet.kill();
@@ -1741,7 +1763,6 @@
         function collectPowerUp(player, powerUp) {
             powerUp.disableBody(true, true);
             
-            // NOVO: Efeito visual e sonoro de coleta
             if (sfxShotEnabled) {
                 try { powerupSynth.triggerAttackRelease(["C4", "E4", "G4"], "8n"); } catch(e) {}
             }
@@ -1788,8 +1809,7 @@
         }
 
         function collectCoin(player, coin) {
-            // NOVO: Som de coleta de moeda
-            if (sfxShotEnabled) { // Usando o toggle de tiro para sons gerais por enquanto
+            if (sfxShotEnabled) {
                 try { coinSynth.triggerAttackRelease("G5", "32n"); } catch(e) {}
             }
             coins += coin.value;
@@ -1874,8 +1894,8 @@
             isPaused = false;
             isGameOver = false;
             isStageClearing = false;
+            isGameStarted = false; // Garante que o jogo não comece automaticamente
             
-            // Reseta os preços da loja para os valores iniciais do config
             shopPrices = { ...GAME_CONFIG.shop.initialPrices };
             permanentHealthBonus = 1;
             permanentShieldBonus = 0;
@@ -2094,6 +2114,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
+            resetGameVariables(); // Garante que o estado inicial está limpo
             initializeGame();
 
             const startScreen = document.getElementById('start-screen');
@@ -2144,7 +2165,6 @@
                 }
             });
 
-            // ALTERADO: Event listeners para os novos toggles de som
             document.getElementById('sfx-shot-toggle').addEventListener('change', (event) => {
                 sfxShotEnabled = event.target.checked;
                 localStorage.setItem('spaceShooterSfxShotEnabled', JSON.stringify(sfxShotEnabled));
