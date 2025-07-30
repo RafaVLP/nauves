@@ -20,7 +20,7 @@ const GAME_CONFIG = {
     enemySpeedIncreasePerStage: 1.05,
     
     // NOVO: Redução no delay de spawn de inimigos por estágio (em milissegundos).
-    enemySpawnDelayReductionPerStage: 250,
+    enemySpawnDelayReductionPerStage: 150,
 
 
     // --- Configurações do Jogador ---
