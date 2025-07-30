@@ -44,6 +44,9 @@ const GAME_CONFIG = {
     /** Chance de um meteoro especial (que dropa mais moedas) aparecer. */
     coinMeteorChance: 0.15, // 15%
 
+    /** Quantidade de moedas dropadas pelo meteoro especial. */
+    specialMeteorCoinDrop: 50,
+
     // --- Configurações de Power-Ups ---
 
     /** Chance geral de um inimigo ou meteoro dropar um power-up. */
