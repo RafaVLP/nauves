@@ -569,10 +569,18 @@
                             <span class="slider"></span>
                         </label>
                     </div>
+                    <!-- ALTERADO: Efeitos sonoros separados -->
                     <div class="settings-row">
-                        <span>Efeitos Sonoros</span>
+                        <span>Sons de Tiro</span>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="sfx-toggle">
+                            <input type="checkbox" id="sfx-shot-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-row">
+                        <span>Sons de Explosão</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="sfx-explosion-toggle">
                             <span class="slider"></span>
                         </label>
                     </div>
@@ -639,27 +647,31 @@
         const SHIELD_MAX_DURATION = 30;
         let shieldTimerEvent;
 
-        let baseEnemyLevel = 1, currentStage = 1, scoreToNextBoss = 100; 
+        let baseEnemyLevel = 1, currentStage = 1, scoreToNextBoss = GAME_CONFIG.pointsForFirstBoss; 
         let bossFightActive = false, bossObject = null;
         
         let enemySpawnTimer, meteorSpawnTimer;
 
         let performanceMode = false;
         let musicEnabled = true;
-        let sfxEnabled = true;
+        // ALTERADO: Variáveis de som separadas
+        let sfxShotEnabled = true;
+        let sfxExplosionEnabled = true;
+
         let settingsReturnTo = 'start'; 
 
         let lightPool = [];
         const MAX_LIGHTS = 50;
-        let explosionEmitter;
+        let explosionEmitter, sparkEmitter; // NOVO: sparkEmitter
 
-        let playerShootSynth, explosionSynth;
+        // ALTERADO: Novos synths
+        let playerShootSynth, explosionSynth, coinSynth, powerupSynth;
         let currentStageMusic, bossMusicSound;
 
         let isGameOver = false;
         let isStageClearing = false;
 
-        let shopPrices = { health: 500, shield: 500, crit: 500, damage: 750 };
+        let shopPrices = {}; // Será inicializado a partir de GAME_CONFIG
         let permanentHealthBonus = 1;
         let permanentShieldBonus = 0;
         let permanentCritBonus = 0;
@@ -696,11 +708,14 @@
         function loadSettings() {
             performanceMode = JSON.parse(localStorage.getItem('spaceShooterPerformanceMode')) ?? isMobileDevice();
             musicEnabled = JSON.parse(localStorage.getItem('spaceShooterMusicEnabled')) ?? true;
-            sfxEnabled = JSON.parse(localStorage.getItem('spaceShooterSfxEnabled')) ?? true;
+            // ALTERADO: Carregar configurações de som separadas
+            sfxShotEnabled = JSON.parse(localStorage.getItem('spaceShooterSfxShotEnabled')) ?? true;
+            sfxExplosionEnabled = JSON.parse(localStorage.getItem('spaceShooterSfxExplosionEnabled')) ?? true;
 
             document.getElementById('performance-toggle').checked = performanceMode;
             document.getElementById('music-toggle').checked = musicEnabled;
-            document.getElementById('sfx-toggle').checked = sfxEnabled;
+            document.getElementById('sfx-shot-toggle').checked = sfxShotEnabled;
+            document.getElementById('sfx-explosion-toggle').checked = sfxExplosionEnabled;
             
             applyPerformanceSettings();
         }
@@ -773,6 +788,11 @@
         }
 
         function create() {
+            // A ordem é importante aqui. Resetar variáveis primeiro.
+            if (!isGameStarted) { // Só reseta na primeira carga, não em reinícios
+                resetGameVariables();
+            }
+
             setupAudio.call(this);
             setupVisuals.call(this);
             setupPlayer.call(this);
@@ -806,8 +826,20 @@
             this.scale.on('resize', fullResize);
             document.addEventListener('fullscreenchange', fullResize);
 
-            this.physics.pause();
-            this.time.paused = true;
+            // CORREÇÃO DO BUG DE REINÍCIO
+            if (isGameStarted) {
+                // Se for um reinício, o jogo começa imediatamente
+                this.physics.resume();
+                this.time.paused = false;
+                if (musicEnabled) {
+                    playStageMusic.call(this);
+                }
+                updateCursorVisibility(false);
+            } else {
+                // Se for a primeira vez, espera o jogador clicar em "Iniciar"
+                this.physics.pause();
+                this.time.paused = true;
+            }
         }
 
         function update() {
@@ -838,6 +870,20 @@
                 envelope: { attack: 0.005, decay: 0.2, sustain: 0 },
                 volume: -10
             }).toDestination();
+
+            // NOVO: Som de coleta de moeda
+            coinSynth = new Tone.Synth({
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.001, decay: 0.1, sustain: 0.1, release: 0.1 },
+                volume: -12
+            }).toDestination();
+
+            // NOVO: Som de coleta de power-up
+            powerupSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'fmsine' },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.1 },
+                volume: -8
+            }).toDestination();
             
             bossMusicSound = this.sound.add('spaceboss', { loop: true, volume: 0 });
         }
@@ -849,10 +895,10 @@
             document.head.appendChild(interFont);
             
             const graphics = this.add.graphics();
-            graphics.fillStyle(0xff4d4d, 1); // Cor vermelha
+            graphics.fillStyle(0xffd700, 1); // Cor de ouro
             graphics.fillCircle(4, 4, 4);
-            graphics.fillStyle(0xffffff, 0.5);
-            graphics.fillCircle(4, 4, 2);
+            graphics.fillStyle(0xffff00, 0.7);
+            graphics.fillCircle(4, 4, 2.5);
             graphics.generateTexture('coin_particle', 8, 8);
 
             graphics.clear();
@@ -881,6 +927,17 @@
                 speed: { min: 100, max: 300 },
                 scale: { start: 0.5, end: 0 },
                 gravityY: 500,
+                blendMode: 'ADD',
+                emitting: false
+            });
+            
+            // NOVO: Emissor de faíscas de dano
+            sparkEmitter = this.add.particles(0, 0, 'flares', {
+                frame: [ 'white', 'yellow' ],
+                lifespan: 150,
+                speed: { min: 80, max: 200 },
+                scale: { start: 0.25, end: 0 },
+                gravityY: 400,
                 blendMode: 'ADD',
                 emitting: false
             });
@@ -922,12 +979,17 @@
             
             document.getElementById('start-game-button').addEventListener('click', () => startGame.call(this));
             
+            // CORREÇÃO DO BUG DE REINÍCIO
             document.getElementById('restart-button').addEventListener('click', () => {
                 updateCursorVisibility(false);
                 document.getElementById('game-over-screen').style.opacity = '0';
                 document.getElementById('game-over-screen').style.visibility = 'hidden';
+
                 this.sound.stopAll();
-                resetGameVariables();
+                
+                // Marca que o próximo 'create' é um reinício
+                isGameStarted = true; 
+                
                 this.scene.restart();
             });
             
@@ -944,8 +1006,8 @@
 
         function setupTimers() {
             this.time.addEvent({ delay: performanceMode ? 100 : 50, callback: spawnStar, callbackScope: this, loop: true });
-            this.time.addEvent({ delay: 400, callback: firePlayerBullet, callbackScope: this, loop: true });
-            enemySpawnTimer = this.time.addEvent({ delay: 2700, callback: spawnEnemy, callbackScope: this, loop: true });
+            this.time.addEvent({ delay: GAME_CONFIG.player.fireRate, callback: firePlayerBullet, callbackScope: this, loop: true });
+            enemySpawnTimer = this.time.addEvent({ delay: GAME_CONFIG.enemy.baseFireRate, callback: spawnEnemy, callbackScope: this, loop: true });
             meteorSpawnTimer = this.time.addEvent({ delay: 6338, callback: spawnMeteor, callbackScope: this, loop: true });
         }
 
@@ -1062,7 +1124,7 @@
 
                 this.setScale(Phaser.Math.FloatBetween(0.8, 1.2) * 0.27);
                 
-                const baseHealth = Phaser.Math.Between(7, 13);
+                const baseHealth = Phaser.Math.Between(GAME_CONFIG.initialMeteorHP.min, GAME_CONFIG.initialMeteorHP.max);
                 this.health = Math.ceil(baseHealth * (1 + baseEnemyLevel * 0.2));
                 this.initialHealth = this.health;
 
@@ -1086,22 +1148,28 @@
 
             kill() {
                 if (!this.active) return;
-                if (sfxEnabled) {
+                if (sfxExplosionEnabled) {
                     try { explosionSynth.triggerAttackRelease("8n"); } catch(e) {}
                 }
                 this.healthBarBackground.setVisible(false); this.healthBar.setVisible(false);
                 if (!performanceMode) createExplosionLight(this.x, this.y, this.scene);
                 if (explosionEmitter) explosionEmitter.explode(performanceMode ? 8 : 15, this.x, this.y);
+                
+                // Drop de itens
+                if (Math.random() < GAME_CONFIG.coinMeteorChance) {
+                    spawnCoins(this.scene, this.x, this.y, 25, this.body.velocity);
+                }
                 this.dropPowerUp();
+
                 this.disableBody(true, true);
             }
             
             dropPowerUp() {
-                if (Math.random() < 0.1) { 
+                if (Math.random() < GAME_CONFIG.powerUpDropChance) { 
                     const powerUp = powerUps.get(this.x, this.y);
                     if (powerUp) {
                         const type = getWeightedPowerUpType();
-                        powerUp.spawn(this.x, this.y, type);
+                        powerUp.spawn(this.x, this.y, type, this.body.velocity);
                     }
                 }
             }
@@ -1162,25 +1230,23 @@
                 this.setAngle(0);
                 this.setScale(1);
                 
-                const baseHealth = 3;
-                const healthMultiplier = Math.pow(1.5, currentStage - 1);
-                this.health = Math.ceil(baseHealth * healthMultiplier * (1 + level * 0.2));
+                const healthMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
+                this.health = Math.ceil(GAME_CONFIG.initialEnemyHP * healthMultiplier * (1 + level * 0.2));
                 this.initialHealth = this.health;
                 
-                const damageMultiplier = Math.pow(1.5, currentStage - 1);
+                const damageMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
                 this.damage = (5 + (level - 1)) * damageMultiplier;
 
-                const baseEnemySpeed = 100;
-                const speedMultiplier = Math.pow(1.5, currentStage - 1);
+                const speedMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
                 const levelSpeedIncreaseFactor = Math.min((level - 1) * 0.05, 0.8);
-                this.speed = baseEnemySpeed * speedMultiplier * (1 + levelSpeedIncreaseFactor);
+                this.speed = GAME_CONFIG.enemy.baseSpeed * speedMultiplier * (1 + levelSpeedIncreaseFactor);
                 this.setVelocityY(this.speed);
                 
                 const enemyHitboxWidth = ENEMY_SPRITE_WIDTH * 0.70;
                 const enemyHitboxHeight = ENEMY_SPRITE_HEIGHT * 0.97;
                 this.body.setSize(enemyHitboxWidth, enemyHitboxHeight).setOffset((ENEMY_SPRITE_WIDTH - enemyHitboxWidth) / 1.7, (ENEMY_SPRITE_HEIGHT - enemyHitboxHeight) / 2);
 
-                this.fireTimer.delay = 2700 - (level * 20);
+                this.fireTimer.delay = GAME_CONFIG.enemy.baseFireRate - (level * 20);
                 this.fireTimer.callback = this.fireBullet;
 
                 let tintColor = 0xFFFFFF;
@@ -1197,8 +1263,8 @@
                 this.setTexture('boss_sprite');
                 this.setScale(0.3).setAlpha(1).setAngle(180).setDepth(10);
                 
-                const healthMultiplier = Math.pow(1.5, currentStage - 1);
-                const damageMultiplier = Math.pow(1.5, currentStage - 1);
+                const healthMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
+                const damageMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
                 const speedMultiplier = Math.pow(1.2, currentStage - 1);
 
                 this.health = 600 * healthMultiplier; 
@@ -1304,7 +1370,7 @@
             
             kill() {
                 if (!this.active) return;
-                if (sfxEnabled) {
+                if (sfxExplosionEnabled) {
                     try { explosionSynth.triggerAttackRelease("8n"); } catch(e) {}
                 }
                 this.setActive(false);
@@ -1317,12 +1383,13 @@
                 
                 if (!this.isBoss) {
                     score += this.level;
-                    spawnCoins(this.scene, this.x, this.y, Math.ceil(Phaser.Math.Between(1, 5) * this.level * 1.1));
+                    const coinValue = Math.ceil(Phaser.Math.Between(GAME_CONFIG.enemyCoinDrop.min, GAME_CONFIG.enemyCoinDrop.max) * this.level * GAME_CONFIG.enemyCoinDrop.multiplierPerLevel);
+                    spawnCoins(this.scene, this.x, this.y, coinValue, this.body.velocity);
                     updateUI();
                     this.dropPowerUp();
                 } else {
                     score += 50 * currentStage;
-                    spawnCoins(this.scene, this.x, this.y, Math.ceil(100 * currentStage * 1.1));
+                    spawnCoins(this.scene, this.x, this.y, Math.ceil(100 * currentStage * 1.1), this.body.velocity);
                     bossObject = null;
                     bossFightActive = false;
                     isStageClearing = true; 
@@ -1333,11 +1400,11 @@
             }
 
             dropPowerUp() {
-                if (Math.random() < 0.1) {
+                if (Math.random() < GAME_CONFIG.powerUpDropChance) {
                     const powerUp = powerUps.get(this.x, this.y);
                     if (powerUp) {
                         const type = getWeightedPowerUpType();
-                        powerUp.spawn(this.x, this.y, type);
+                        powerUp.spawn(this.x, this.y, type, this.body.velocity);
                     }
                 }
             }
@@ -1374,11 +1441,18 @@
                 this.body.allowGravity = false; this.setOrigin(0.5); this.type = '';
             }
 
-            spawn(x, y, type) {
+            spawn(x, y, type, initialVelocity = null) {
                 this.enableBody(true, x, y, true, true);
                 this.type = type;
                 this.setTexture('powerup_' + type);
-                this.setVelocityY(100);
+                
+                // ALTERADO: Power-ups seguem a trajetória do inimigo
+                if (initialVelocity) {
+                    this.setVelocity(initialVelocity.x * 0.5, initialVelocity.y * 0.5);
+                } else {
+                    this.setVelocityY(100);
+                }
+
                 if (!performanceMode) {
                     this.setPipeline('Light2D');
                 }
@@ -1398,28 +1472,36 @@
                 this.attracted = false;
             }
 
-            spawn(x, y, value) {
+            spawn(x, y, value, initialVelocity = null) {
                 this.value = value;
                 this.attracted = false;
                 this.enableBody(true, x, y, true, true);
-                const randomVelocityX = Phaser.Math.Between(-50, 50);
-                const randomVelocityY = Phaser.Math.Between(20, 80);
-                this.setVelocity(randomVelocityX, randomVelocityY);
+                
+                // ALTERADO: Moedas seguem a trajetória do inimigo
+                if (initialVelocity) {
+                    const randomFactorX = Phaser.Math.FloatBetween(-40, 40);
+                    const randomFactorY = Phaser.Math.FloatBetween(-20, 50);
+                    this.setVelocity(initialVelocity.x + randomFactorX, initialVelocity.y + randomFactorY);
+                } else {
+                    const randomVelocityX = Phaser.Math.Between(-50, 50);
+                    const randomVelocityY = Phaser.Math.Between(20, 80);
+                    this.setVelocity(randomVelocityX, randomVelocityY);
+                }
+
                 this.body.setAngularVelocity(Phaser.Math.Between(-200, 200));
                 this.body.setDrag(10, 10);
                 this.body.setBounce(0.5);
-                this.setScale(1.15);
+                // ALTERADO: Tamanho da moeda aumentado em 10%
+                this.setScale(1.265); 
                 this.scene.tweens.add({
                     targets: this,
-                    scaleX: -1.15,
+                    scaleX: -1.265,
                     duration: 200,
                     yoyo: true,
                     repeat: -1,
                     ease: 'Sine.easeInOut'
                 });
-                if (!performanceMode) {
-                    this.setPipeline('Light2D');
-                }
+                // REMOVIDO: Luz da moeda
             }
 
             preUpdate(time, delta) {
@@ -1463,10 +1545,10 @@
 
         function firePlayerBullet() {
             if (!player.active) return;
-            if (sfxEnabled) {
+            if (sfxShotEnabled) {
                 try { playerShootSynth.triggerAttackRelease("C5", "16n"); } catch(e) {}
             }
-            const baseVy = -400;
+            const baseVy = GAME_CONFIG.player.bulletSpeed;
             const bulletSpawnY = player.y - player.displayHeight / 2;
             let bullet = playerBullets.get();
             if (bullet) bullet.fire(player.x, bulletSpawnY, 0, baseVy, 'playerBullet', playerDamage, 0, playerBulletTint);
@@ -1578,8 +1660,8 @@
             }
 
             currentStage++;
-            scoreToNextBoss = score + (100 * currentStage);
-            baseEnemyLevel = Math.ceil(baseEnemyLevel * 1.5);
+            scoreToNextBoss = score + (GAME_CONFIG.pointsForFirstBoss * currentStage);
+            baseEnemyLevel = Math.ceil(baseEnemyLevel * GAME_CONFIG.difficultyIncreasePerStage);
 
             updateUI();
         }
@@ -1587,10 +1669,13 @@
         function handlePlayerHit(bullet, target) {
             if (!bullet.active || !target.active) return;
 
+            // NOVO: Efeito de faísca
+            if (sparkEmitter) sparkEmitter.explode(5, bullet.x, bullet.y);
+
             bullet.kill();
 
             let damageDealt = bullet.damage;
-            const isCritical = Math.random() < (0.10 + permanentCritBonus);
+            const isCritical = Math.random() < (GAME_CONFIG.initialCritChance + permanentCritBonus);
 
             if (isCritical) {
                 damageDealt *= 1.5;
@@ -1655,6 +1740,21 @@
 
         function collectPowerUp(player, powerUp) {
             powerUp.disableBody(true, true);
+            
+            // NOVO: Efeito visual e sonoro de coleta
+            if (sfxShotEnabled) {
+                try { powerupSynth.triggerAttackRelease(["C4", "E4", "G4"], "8n"); } catch(e) {}
+            }
+            const effectText = this.add.text(player.x, player.y - 50, `+ ${powerUp.type.toUpperCase()}!`, {
+                fontFamily: 'Inter', fontSize: '20px', fill: '#00ff8c',
+                stroke: '#000000', strokeThickness: 4, fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(200);
+            this.tweens.add({
+                targets: effectText, y: player.y - 100, alpha: 0, duration: 1000, ease: 'Power2',
+                onComplete: () => effectText.destroy()
+            });
+
+
             switch (powerUp.type) {
                 case 'damage': 
                     playerDamage++; 
@@ -1688,6 +1788,10 @@
         }
 
         function collectCoin(player, coin) {
+            // NOVO: Som de coleta de moeda
+            if (sfxShotEnabled) { // Usando o toggle de tiro para sons gerais por enquanto
+                try { coinSynth.triggerAttackRelease("G5", "32n"); } catch(e) {}
+            }
             coins += coin.value;
             coin.destroy();
             updateUI();
@@ -1766,13 +1870,13 @@
             shieldTimerEvent = null;
 
             bossFightActive = false; bossObject = null;
-            currentStage = 1; baseEnemyLevel = 1; scoreToNextBoss = 100; 
+            currentStage = 1; baseEnemyLevel = 1; scoreToNextBoss = GAME_CONFIG.pointsForFirstBoss; 
             isPaused = false;
-            isGameStarted = false; 
             isGameOver = false;
             isStageClearing = false;
             
-            shopPrices = { health: 500, shield: 500, crit: 500, damage: 750 };
+            // Reseta os preços da loja para os valores iniciais do config
+            shopPrices = { ...GAME_CONFIG.shop.initialPrices };
             permanentHealthBonus = 1;
             permanentShieldBonus = 0;
             permanentCritBonus = 0;
@@ -1840,11 +1944,17 @@
 
         // --- Funções Utilitárias ---
         function getWeightedPowerUpType() {
+            const distribution = GAME_CONFIG.powerUpDistribution;
             const rand = Math.random() * 100;
-            if (rand < 60) return 'health';    
-            if (rand < 80) return 'shield';    
-            if (rand < 95) return 'damage';    
-            return 'extraShot';                
+            let cumulative = 0;
+
+            for (const type in distribution) {
+                cumulative += distribution[type];
+                if (rand < cumulative) {
+                    return type;
+                }
+            }
+            return 'health'; // Fallback
         }
 
         function getLightFromPool() {
@@ -1917,7 +2027,7 @@
             const items = [
                 { id: 'health', name: 'Vida Máxima +10%', cost: shopPrices.health },
                 { id: 'shield', name: '+1s Duração do Escudo', cost: shopPrices.shield },
-                { id: 'crit', name: '+0.5% Chance de Crítico', cost: shopPrices.crit },
+                { id: 'crit', name: `+0.5% Chance Crítico`, cost: shopPrices.crit },
                 { id: 'damage', name: '+1 de Dano', cost: shopPrices.damage }
             ];
 
@@ -1942,7 +2052,7 @@
         function buyShopItem(itemId) {
             if (coins >= shopPrices[itemId]) {
                 coins -= Math.ceil(shopPrices[itemId]);
-                shopPrices[itemId] *= 1.75;
+                shopPrices[itemId] *= GAME_CONFIG.shop.priceIncreaseMultiplier;
 
                 if (itemId === 'health') permanentHealthBonus += 0.1;
                 if (itemId === 'shield') permanentShieldBonus += 1;
@@ -1968,7 +2078,7 @@
             }
         }
 
-        function spawnCoins(scene, x, y, totalValue) {
+        function spawnCoins(scene, x, y, totalValue, initialVelocity = null) {
             let remainingValue = totalValue;
             let numCoins = Math.min(Math.ceil(totalValue / 5), 7); 
 
@@ -1977,7 +2087,7 @@
                 if (coin) {
                     const value = Math.ceil(remainingValue / (numCoins - i));
                     remainingValue -= value;
-                    coin.spawn(x, y, value);
+                    coin.spawn(x, y, value, initialVelocity);
                 }
             }
         }
@@ -2034,9 +2144,14 @@
                 }
             });
 
-            document.getElementById('sfx-toggle').addEventListener('change', (event) => {
-                sfxEnabled = event.target.checked;
-                localStorage.setItem('spaceShooterSfxEnabled', JSON.stringify(sfxEnabled));
+            // ALTERADO: Event listeners para os novos toggles de som
+            document.getElementById('sfx-shot-toggle').addEventListener('change', (event) => {
+                sfxShotEnabled = event.target.checked;
+                localStorage.setItem('spaceShooterSfxShotEnabled', JSON.stringify(sfxShotEnabled));
+            });
+            document.getElementById('sfx-explosion-toggle').addEventListener('change', (event) => {
+                sfxExplosionEnabled = event.target.checked;
+                localStorage.setItem('spaceShooterSfxExplosionEnabled', JSON.stringify(sfxExplosionEnabled));
             });
         });
 

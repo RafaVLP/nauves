@@ -1,60 +1,90 @@
-// =================================================================
-// ARQUIVO DE CONFIGURAÇÃO E BALANCEAMENTO DO JOGO
-// Altere os valores aqui para ajustar a dificuldade e outras mecânicas.
-// =================================================================
-
+/**
+ * game-config.js
+ * * Arquivo central para todas as configurações e balanceamento do jogo.
+ * Modifique os valores aqui para ajustar a dificuldade, preços, chances de drop e mais,
+ * sem a necessidade de alterar o código principal do jogo.
+ */
 const GAME_CONFIG = {
+    // --- Configurações Gerais de Dificuldade ---
+    
+    /** Pontuação necessária para o primeiro chefe aparecer. */
+    pointsForFirstBoss: 100,
+    
+    /** * Multiplicador de dificuldade para cada novo estágio. 
+     * Afeta a vida e o dano dos inimigos e chefes. 
+     * Ex: 1.5 significa um aumento de 50% por estágio.
+     */
+    difficultyIncreasePerStage: 1.5,
 
     // --- Configurações do Jogador ---
-    PLAYER: {
-        INITIAL_HEALTH: 100,
-        INITIAL_DAMAGE: 1,
-        INITIAL_CRIT_CHANCE: 0.10, // 10% de chance
+
+    /** Chance de acerto crítico inicial do jogador (ex: 0.10 para 10%). */
+    initialCritChance: 0.10,
+
+    // --- Configurações dos Inimigos ---
+
+    /** Vida base dos inimigos comuns. */
+    initialEnemyHP: 3,
+    
+    /** Configurações de moedas dropadas por inimigos. */
+    enemyCoinDrop: {
+        min: 1,
+        max: 5,
+        multiplierPerLevel: 1.1 // Multiplicador baseado no nível do inimigo
     },
 
-    // --- Dificuldade e Progressão ---
-    PROGRESSION: {
-        SCORE_TO_FIRST_BOSS: 100,
-        STAGE_DIFFICULTY_MULTIPLIER: 1.5, // 50% mais forte a cada estágio
-        BOSS_SPEED_MULTIPLIER: 1.2,       // 20% mais rápido a cada estágio
+    // --- Configurações dos Meteoros ---
+
+    /** Vida base dos meteoros. */
+    initialMeteorHP: {
+        min: 7,
+        max: 13
+    },
+    
+    /** Chance de um meteoro especial (que dropa mais moedas) aparecer. */
+    coinMeteorChance: 0.15, // 15%
+
+    // --- Configurações de Power-Ups ---
+
+    /** Chance geral de um inimigo ou meteoro dropar um power-up. */
+    powerUpDropChance: 0.1, // 10%
+    
+    /** * Distribuição da chance de cada tipo de power-up.
+     * A soma de todos os valores deve ser 100.
+     */
+    powerUpDistribution: {
+        health: 60,    // 60% de chance de ser 'health'
+        shield: 20,    // 20% de chance de ser 'shield'
+        damage: 15,    // 15% de chance de ser 'damage'
+        extraShot: 5   // 5% de chance de ser 'extraShot'
     },
 
-    // --- Inimigos e Meteoros ---
-    ENEMIES: {
-        BASE_HEALTH: 3,
-        BASE_DAMAGE: 5,
-        BASE_SPEED: 100,
-    },
-    METEORS: {
-        BASE_HEALTH: { min: 7, max: 13 },
-        SHINY_CHANCE: 0.1, // 10% de chance
-    },
+    // --- Configurações da Loja ---
 
-    // --- Economia (Moedas) ---
-    ECONOMY: {
-        COIN_DROP_MULTIPLIER: 1.1, // 10% a mais de moedas
-        SHINY_METEOR_COIN_MULTIPLIER: 10,
-    },
-
-    // --- Loja de Melhorias ---
-    SHOP: {
-        INITIAL_PRICES: {
+    shop: {
+        /** Preços iniciais para os upgrades na loja. */
+        initialPrices: {
             health: 300,
             shield: 300,
             crit: 300,
-            damage: 300,
+            damage: 300
         },
-        PRICE_INCREASE_MULTIPLIER: 1.75, // Aumento de 75% a cada compra
+        /** Multiplicador de aumento de preço a cada compra. */
+        priceIncreaseMultiplier: 1.75
     },
+    
+    // --- Configurações Adicionais de Balanceamento (Opcional) ---
 
-    // --- Power-ups ---
-    POWERUPS: {
-        TOTAL_DROP_CHANCE: 0.4, // 50% de chance total
-        DROP_WEIGHTS: {
-            health: 60,    // 60%
-            shield: 20,    // 20%
-            damage: 15,    // 15%
-            extraShot: 5,  // 5%
-        },
+    player: {
+        /** Velocidade dos projéteis do jogador. */
+        bulletSpeed: -400,
+        /** Intervalo entre os tiros do jogador em milissegundos. */
+        fireRate: 400, 
     },
+    enemy: {
+        /** Velocidade base dos inimigos. */
+        baseSpeed: 100,
+        /** Intervalo base entre os tiros dos inimigos em milissegundos. */
+        baseFireRate: 2700 
+    }
 };
