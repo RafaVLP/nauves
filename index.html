@@ -349,6 +349,8 @@
         .control-button-container {
             pointer-events: auto;
             flex-shrink: 0;
+            display: flex;
+            gap: clamp(8px, 2vw, 15px);
         }
         .control-button {
             width: clamp(40px, 9vw, 45px);
@@ -363,6 +365,10 @@
             width: clamp(20px, 5vw, 22px); 
             height: clamp(20px, 5vw, 22px); 
             fill: var(--ui-blue); 
+        }
+        
+        #shop-button svg {
+            fill: var(--ui-green);
         }
 
         .menu-buttons {
@@ -531,6 +537,9 @@
                 </div>
 
                 <div class="control-button-container">
+                    <div id="shop-button" class="control-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                    </div>
                     <div id="pause-button" class="control-button">
                         <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                     </div>
@@ -569,7 +578,6 @@
                             <span class="slider"></span>
                         </label>
                     </div>
-                    <!-- ALTERADO: Efeitos sonoros separados -->
                     <div class="settings-row">
                         <span>Sons de Tiro</span>
                         <label class="toggle-switch">
@@ -594,7 +602,7 @@
                     <div id="shop-items-container">
                         <!-- Itens da loja serão inseridos aqui por JS -->
                     </div>
-                    <button id="shop-continue-button" class="overlay-button">PROSSEGUIR</button>
+                    <button id="shop-action-button" class="overlay-button">PROSSEGUIR</button>
                 </div>
             </div>
 
@@ -668,6 +676,7 @@
 
         let isGameOver = false;
         let isStageClearing = false;
+        let isShopOpenFromPause = false;
 
         let shopPrices = {}; 
         let permanentHealthBonus = 1;
@@ -818,7 +827,6 @@
             this.scale.on('resize', fullResize);
             document.addEventListener('fullscreenchange', fullResize);
 
-            // CORREÇÃO DO BUG DE REINÍCIO: A lógica agora espera o clique no botão de Iniciar
             this.physics.pause();
             this.time.paused = true;
         }
@@ -875,14 +883,12 @@
             
             const graphics = this.add.graphics();
             
-            // Textura da moeda
             graphics.fillStyle(0xffd700, 1);
             graphics.fillCircle(4, 4, 4);
             graphics.fillStyle(0xffff00, 0.7);
             graphics.fillCircle(4, 4, 2.5);
             graphics.generateTexture('coin_particle', 8, 8);
             
-            // NOVO: Textura do tiro do chefe
             graphics.clear();
             graphics.fillStyle(0xff0000, 1);
             graphics.fillCircle(8, 8, 8);
@@ -890,13 +896,11 @@
             graphics.fillCircle(8, 8, 5);
             graphics.generateTexture('boss_bullet_sprite', 16, 16);
 
-            // NOVO: Textura da faísca dourada
             graphics.clear();
             graphics.fillStyle(0xffd700, 1);
             graphics.fillRect(0, 0, 2, 2);
             graphics.generateTexture('gold_sparkle', 2, 2);
 
-            // Outras texturas
             graphics.clear();
             graphics.fillStyle(0xffffff, 1);
             graphics.fillCircle(2, 2, 2);
@@ -974,7 +978,6 @@
             
             document.getElementById('start-game-button').addEventListener('click', () => startGame.call(this));
             
-            // CORREÇÃO DO BUG DE REINÍCIO
             document.getElementById('restart-button').addEventListener('click', () => {
                 document.getElementById('game-over-screen').style.opacity = '0';
                 document.getElementById('game-over-screen').style.visibility = 'hidden';
@@ -990,10 +993,18 @@
                 this.scene.restart();
             });
             
-            document.getElementById('next-stage-button').addEventListener('click', () => openShop.call(this));
-            document.getElementById('shop-continue-button').addEventListener('click', () => startNextStage.call(this));
+            document.getElementById('next-stage-button').addEventListener('click', () => openShop.call(this, false));
+            document.getElementById('shop-action-button').addEventListener('click', () => {
+                if (isShopOpenFromPause) {
+                    closeShopAndResume.call(this);
+                } else {
+                    startNextStage.call(this);
+                }
+            });
+
             document.getElementById('resume-button').addEventListener('click', () => togglePause.call(this));
             document.getElementById('pause-button').addEventListener('click', () => togglePause.call(this));
+            document.getElementById('shop-button').addEventListener('click', () => openShop.call(this, true));
             
             document.getElementById('fullscreen-button').addEventListener('click', toggleApiFullscreen);
             document.addEventListener('fullscreenchange', updateFullscreenButton);
@@ -1050,7 +1061,6 @@
                 this.setTexture(textureKey);
                 this.enableBody(true, x, y, true, true);
                 
-                // Ajusta o hitbox para ser um círculo baseado na menor dimensão da textura
                 const size = Math.min(this.width, this.height);
                 this.body.setCircle(size / 2);
 
@@ -1116,6 +1126,7 @@
                 this.healthBar = scene.add.rectangle(0, 0, 1, 5, 0xcccccc).setOrigin(0.5, 0.5);
                 this.isCoinMeteor = false;
                 this.trailEmitter = null;
+                this.pulseTween = null;
             }
 
             spawn(x, y, isCoinMeteor = false) {
@@ -1124,7 +1135,8 @@
                 const num = meteorType < 10 ? `0${meteorType}` : meteorType;
                 this.setTexture(`Meteor_${num}`);
 
-                this.setScale(Phaser.Math.FloatBetween(0.8, 1.2) * 0.27);
+                const baseScale = Phaser.Math.FloatBetween(0.8, 1.2) * 0.27;
+                this.setScale(baseScale);
                 
                 const baseHealth = Phaser.Math.Between(GAME_CONFIG.initialMeteorHP.min, GAME_CONFIG.initialMeteorHP.max);
                 this.health = Math.ceil(baseHealth * (1 + baseEnemyLevel * 0.2));
@@ -1139,13 +1151,25 @@
                 }
 
                 if (this.isCoinMeteor) {
-                    this.setTint(0xffd700); // Tonalidade dourada
+                    this.setTint(0xffd700);
+                    if (this.pulseTween) this.pulseTween.stop();
+                    this.pulseTween = this.scene.tweens.add({
+                        targets: this,
+                        scale: baseScale * 1.15,
+                        duration: 400,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: 'Sine.easeInOut'
+                    });
+
                     if (!performanceMode) {
-                        this.trailEmitter = this.scene.add.particles(0, 0, 'gold_sparkle', {
-                            speed: 10,
-                            scale: { start: 1, end: 0 },
+                        this.trailEmitter = this.scene.add.particles(0, 0, 'flares', {
+                            frame: 'yellow',
+                            speed: 20,
+                            scale: { start: 0.3, end: 0 },
                             blendMode: 'ADD',
-                            lifespan: 500
+                            lifespan: 600,
+                            quantity: 2
                         });
                         this.trailEmitter.startFollow(this);
                     }
@@ -1175,6 +1199,10 @@
                 if (this.trailEmitter) {
                     this.trailEmitter.destroy();
                     this.trailEmitter = null;
+                }
+                if (this.pulseTween) {
+                    this.pulseTween.stop();
+                    this.pulseTween = null;
                 }
                 
                 if (this.isCoinMeteor) {
@@ -1284,7 +1312,6 @@
                 this.setTexture('boss_sprite');
                 this.setScale(0.3).setAlpha(1).setAngle(180).setDepth(10);
                 
-                // NOVO: Cores diferentes para o chefe
                 const bossColors = [0xff8888, 0x88ff88, 0x8888ff, 0xffff88, 0xff88ff, 0x88ffff];
                 this.setTint(bossColors[(currentStage - 1) % bossColors.length]);
                 
@@ -1653,20 +1680,59 @@
             screen.style.opacity = '1';
         }
 
-        function openShop() {
-            document.getElementById('stage-clear-screen').style.visibility = 'hidden';
-            document.getElementById('shop-screen').style.visibility = 'visible';
-            document.getElementById('shop-screen').style.opacity = '1';
+        // --- CORREÇÃO LÓGICA DA LOJA E PAUSA ---
+
+        function pauseGame(sceneContext) {
+            if (isPaused) return;
+            isPaused = true;
+            if (musicEnabled) sceneContext.sound.pauseAll();
+            sceneContext.scene.pause();
+            sceneContext.time.paused = true;
+            updateCursorVisibility(true);
+        }
+
+        function resumeGame(sceneContext) {
+            if (!isPaused) return;
+            isPaused = false;
+            if (musicEnabled) sceneContext.sound.resumeAll();
+            sceneContext.scene.resume();
+            sceneContext.time.paused = false;
+            updateCursorVisibility(false);
+        }
+
+        function openShop(fromPause) {
+            if (!isGameStarted) return;
+            isShopOpenFromPause = fromPause;
+
+            pauseGame(this); // Pausa o jogo sem mostrar o menu de pausa
+
+            if (!fromPause) {
+                document.getElementById('stage-clear-screen').style.visibility = 'hidden';
+            }
+            
+            const shopScreen = document.getElementById('shop-screen');
+            shopScreen.style.visibility = 'visible';
+            shopScreen.style.opacity = '1';
+
+            const actionButton = document.getElementById('shop-action-button');
+            actionButton.textContent = fromPause ? 'FECHAR' : 'PROSSEGUIR';
+            
             updateShopUI();
+        }
+
+        function closeShopAndResume() {
+            const shopScreen = document.getElementById('shop-screen');
+            shopScreen.style.visibility = 'hidden';
+            shopScreen.style.opacity = '0';
+            resumeGame(this); // Retoma o jogo
         }
 
         function startNextStage() {
             isStageClearing = false;
-            updateCursorVisibility(false);
             document.getElementById('shop-screen').style.visibility = 'hidden';
             document.getElementById('shop-screen').style.opacity = '0';
 
-            this.physics.resume();
+            resumeGame(this); // Retoma o jogo para o próximo estágio
             meteorSpawnTimer.paused = false;
             enemySpawnTimer.paused = false;
 
@@ -1894,7 +1960,7 @@
             isPaused = false;
             isGameOver = false;
             isStageClearing = false;
-            isGameStarted = false; // Garante que o jogo não comece automaticamente
+            isGameStarted = false;
             
             shopPrices = { ...GAME_CONFIG.shop.initialPrices };
             permanentHealthBonus = 1;
@@ -1904,25 +1970,18 @@
             if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
         }
         
-        // --- Funções de Controle ---
-
         function togglePause() {
-            if (!isGameStarted) return; 
-            isPaused = !isPaused;
-            updateCursorVisibility(isPaused);
+            if (!isGameStarted || document.getElementById('shop-screen').style.visibility === 'visible') return;
+
             const pauseScreen = document.getElementById('pause-screen');
             if (isPaused) {
-                if (musicEnabled) this.sound.pauseAll();
-                this.scene.pause();
-                this.time.paused = true;
-                pauseScreen.style.visibility = 'visible';
-                pauseScreen.style.opacity = '1';
-            } else {
-                if (musicEnabled) this.sound.resumeAll();
-                this.scene.resume();
-                this.time.paused = false;
+                resumeGame(this);
                 pauseScreen.style.visibility = 'hidden';
                 pauseScreen.style.opacity = '0';
+            } else {
+                pauseGame(this);
+                pauseScreen.style.visibility = 'visible';
+                pauseScreen.style.opacity = '1';
             }
         }
         
@@ -2114,7 +2173,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
-            resetGameVariables(); // Garante que o estado inicial está limpo
+            resetGameVariables(); 
             initializeGame();
 
             const startScreen = document.getElementById('start-screen');
