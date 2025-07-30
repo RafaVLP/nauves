@@ -2,11 +2,10 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport otimizado para desabilitar zoom e garantir consistência -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Space Shooter: Boss Fight</title>
-    <!-- Carregando a biblioteca Phaser -->
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <!-- Certifique-se de que o arquivo phaser.min.js (v3.80.1 ou superior) está na mesma pasta -->
+    <script src="phaser.min.js"></script>
     <style>
         /* --- Configurações Globais --- */
         :root {
@@ -14,64 +13,61 @@
             --ui-green: #00ff8c;
             --ui-red: #ff4d4d;
             --ui-yellow-crit: #ffc700;
-            --ui-bg-color: rgba(10, 25, 47, 0.85);
+            --ui-bg-color: rgba(10, 25, 47, 0.75);
             --ui-border-color: rgba(0, 216, 255, 0.5);
             --dark-royal-blue: #061021;
-        }
-
-        /* --- Estilos do Body e Contêiner Principal --- */
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden; /* Previne barras de rolagem */
-            background-color: var(--dark-royal-blue);
         }
 
         body {
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--dark-royal-blue);
+            overflow: hidden;
             font-family: 'Inter', sans-serif;
             color: #e0e0e0;
         }
 
         #game-container {
             position: relative;
-            /* Ocupa toda a tela, crucial para o modo fullscreen */
-            width: 100vw;
-            height: 100vh;
-            display: flex;
+            width: 100%;
+            height: 100vh; /* Ocupa toda a altura da viewport */
+            cursor: none;
+            display: flex; /* Adicionado para centralizar o canvas */
             justify-content: center;
             align-items: center;
-            cursor: none;
+            /* Garante que o contêiner não seja maior que a tela */
+            max-width: 100vw;
+            max-height: 100vh;
         }
 
-        /* --- Estilos do Canvas do Jogo --- */
         canvas {
             border-radius: 15px;
             box-shadow: 0 0 25px rgba(0, 216, 255, 0.6);
             border: 2px solid var(--ui-blue);
-            /* Garante que o canvas se ajuste ao contêiner sem distorcer */
+            /* Garante que o canvas se ajuste ao contêiner */
             max-width: 100%;
             max-height: 100%;
-            object-fit: contain;
+            width: auto;
+            height: auto;
         }
         
-        /* --- UI (Interface do Usuário) --- */
+        /* --- Nova UI Arcade --- */
         #game-ui {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* Permite cliques "através" da UI no jogo */
+            pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            /* AJUSTE: Padding responsivo usando vw e vh */
             padding: clamp(10px, 2.5vw, 25px); 
             box-sizing: border-box;
-            z-index: 10; /* Garante que a UI fique sobre o canvas */
         }
 
         .ui-top, .ui-bottom {
@@ -79,73 +75,216 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            position: relative;
         }
         
         .ui-bottom {
             align-items: flex-end;
         }
-        
-        /* Painéis de Informação (Score, Stage) */
+
         .info-panel {
             background: var(--ui-bg-color);
             border: 1px solid var(--ui-border-color);
+            /* AJUSTE: Padding responsivo */
             padding: clamp(5px, 1.5vw, 15px) clamp(10px, 2.5vw, 25px);
             color: white;
             font-weight: 700;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(5px);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 75%);
         }
-        .info-panel.left { clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 75%); }
-        .info-panel.right { clip-path: polygon(0 0, 100% 0, 100% 75%, calc(100% - 10px) 100%, 0 100%); text-align: right; }
-        .info-panel .label { font-size: clamp(0.7em, 1.8vw, 1em); color: var(--ui-blue); opacity: 0.8; }
-        .info-panel .value { font-size: clamp(1.2em, 3vw, 1.8em); text-shadow: 0 0 5px var(--ui-green); }
+        
+        .info-panel.right {
+             clip-path: polygon(0 0, 100% 0, 100% 75%, 95% 100%, 0 100%);
+             text-align: right;
+        }
 
-        /* Barra de Vida do Chefe */
+        .info-panel .label {
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(0.7em, 1.8vw, 1em);
+            color: var(--ui-blue);
+            opacity: 0.8;
+        }
+
+        .info-panel .value {
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(1.2em, 3vw, 1.8em);
+            text-shadow: 0 0 5px var(--ui-green);
+        }
+
+        /* --- Barra de Vida do Chefe --- */
         #boss-health-container {
             position: absolute;
+            /* AJUSTE: Posição superior responsiva */
             top: clamp(60px, 8vh, 100px); 
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
-            max-width: 600px;
             display: none;
             flex-direction: column;
             align-items: center;
             gap: 5px;
+            z-index: 50;
         }
-        .boss-health-label { font-size: clamp(0.9em, 2.2vw, 1.2em); font-weight: 700; color: var(--ui-red); text-shadow: 0 0 8px var(--ui-red); }
-        .boss-health-bar-background { width: 100%; height: clamp(15px, 2.5vw, 20px); background-color: var(--ui-bg-color); border: 2px solid var(--ui-red); border-radius: 5px; padding: 2px; }
-        #boss-health-bar-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff4500, var(--ui-red)); border-radius: 3px; transition: width 0.2s ease-out; }
+
+        .boss-health-label {
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(0.9em, 2.2vw, 1.2em);
+            font-weight: 700;
+            color: var(--ui-red);
+            text-shadow: 0 0 8px var(--ui-red);
+        }
+
+        .boss-health-bar-background {
+            width: 100%;
+            /* AJUSTE: Altura responsiva */
+            height: clamp(15px, 2.5vw, 20px); 
+            background-color: var(--ui-bg-color);
+            border: 2px solid var(--ui-red);
+            border-radius: 5px;
+            padding: 2px;
+        }
+
+        #boss-health-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff4500, var(--ui-red));
+            border-radius: 3px;
+            transition: width 0.2s ease-out;
+        }
         
-        /* Painel de Status do Jogador (Vida, Ícones) */
         .player-stats-panel {
             display: flex;
             flex-direction: column;
             align-items: center;
-            flex-grow: 1; /* Faz o painel ocupar o espaço central */
-            margin: 0 clamp(10px, 2vw, 15px); /* Espaçamento dos botões laterais */
+            /* Ajusta a largura para não sobrepor os botões, usando calc com clamp */
+            width: calc(100% - clamp(80px, 15vw, 100px)); 
+            pointer-events: auto;
         }
-        .bars-container { position: relative; width: 100%; height: clamp(20px, 3vw, 25px); margin-bottom: clamp(5px, 1.5vw, 10px); }
-        .progress-bar-background { position: absolute; width: 100%; height: 100%; background-color: var(--ui-bg-color); border: 1px solid var(--ui-border-color); clip-path: polygon(0 5px, 5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px)); backdrop-filter: blur(5px); }
-        .progress-bar-fill { height: 100%; transition: width 0.2s ease-out; position: relative; clip-path: polygon(0 5px, 5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px)); }
-        #health-bar-fill { background: linear-gradient(90deg, var(--ui-red), #ff7878); }
-        #shield-bar-overlay { position: absolute; top: 0; left: 0; width: 0%; height: 5px; background-color: var(--ui-blue); box-shadow: 0 0 8px var(--ui-blue); border-radius: 2px; transition: width 0.2s ease-out, opacity 0.3s ease-in-out; opacity: 0; }
-        .bar-text { position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; justify-content: center; align-items: center; font-size: clamp(0.8em, 2vw, 1em); font-weight: 700; color: white; text-shadow: 1px 1px 2px black; }
-        .stats-icons-container { display: flex; gap: clamp(10px, 2.5vw, 15px); align-items: center; justify-content: center; width: 100%; }
-        .stat-item { display: flex; align-items: center; gap: clamp(5px, 1.5vw, 8px); background: var(--ui-bg-color); border: 1px solid var(--ui-border-color); padding: clamp(3px, 1vw, 5px) clamp(8px, 2vw, 12px); border-radius: 5px; backdrop-filter: blur(5px); }
-        .stat-icon-img { width: clamp(20px, 3.5vw, 24px); height: clamp(20px, 3.5vw, 24px); }
-        .stat-item .value { font-size: clamp(1em, 2.5vw, 1.2em); font-weight: 700; color: var(--ui-green); }
-        #shield-timer-container { display: flex; align-items: center; gap: clamp(5px, 1.5vw, 8px); background: var(--ui-bg-color); border: 1px solid var(--ui-border-color); padding: clamp(3px, 1vw, 5px) clamp(8px, 2vw, 12px); border-radius: 5px; backdrop-filter: blur(5px); width: clamp(60px, 12vw, 70px); justify-content: center; }
-        #shield-timer { font-size: clamp(1em, 2.5vw, 1.2em); font-weight: 700; color: var(--ui-blue); text-shadow: 0 0 5px var(--ui-blue); opacity: 0; transition: opacity 0.3s ease-in-out; }
-        #shield-timer-icon { width: clamp(20px, 3.5vw, 24px); height: clamp(20px, 3.5vw, 24px); opacity: 0.5; }
-        
-        /* Botões de Controle (Pause/Fullscreen) */
-        .control-button-container { pointer-events: auto; flex-shrink: 0; /* Impede que os botões encolham */ }
-        .control-button { width: clamp(40px, 10vw, 45px); height: clamp(40px, 10vw, 45px); background-color: var(--ui-bg-color); border: 1px solid var(--ui-border-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        .control-button svg { width: clamp(20px, 5vw, 22px); height: clamp(20px, 5vw, 22px); fill: var(--ui-blue); }
-        #exit-fullscreen-icon { display: none; } /* Ícone de sair da tela cheia, escondido por padrão */
 
-        /* Telas de Overlay (Game Over, Pause, etc.) */
+        .bars-container {
+            position: relative;
+            width: 100%;
+            /* AJUSTE: Altura responsiva */
+            height: clamp(20px, 3vw, 25px); 
+            margin-bottom: clamp(5px, 1.5vw, 10px);
+        }
+        
+        .progress-bar-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: var(--ui-bg-color);
+            border: 1px solid var(--ui-border-color);
+            clip-path: polygon(0 5px, 5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px));
+            backdrop-filter: blur(5px);
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            transition: width 0.2s ease-out;
+            position: relative;
+            clip-path: polygon(0 5px, 5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px));
+        }
+
+        #health-bar-fill {
+            background: linear-gradient(90deg, var(--ui-red), #ff7878);
+        }
+        
+        #shield-bar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 5px;
+            background-color: var(--ui-blue);
+            box-shadow: 0 0 8px var(--ui-blue);
+            border-radius: 2px;
+            transition: width 0.2s ease-out, opacity 0.3s ease-in-out;
+            opacity: 0;
+        }
+        
+        .bar-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(0.8em, 2vw, 1em);
+            font-weight: 700;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        .stats-icons-container {
+            display: flex;
+            /* AJUSTE: Gap responsivo */
+            gap: clamp(10px, 2.5vw, 15px);
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            /* AJUSTE: Gap e padding responsivos */
+            gap: clamp(5px, 1.5vw, 8px);
+            background: var(--ui-bg-color);
+            border: 1px solid var(--ui-border-color);
+            padding: clamp(3px, 1vw, 5px) clamp(8px, 2vw, 12px);
+            border-radius: 5px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .stat-icon-img {
+            /* AJUSTE: Tamanho responsivo */
+            width: clamp(20px, 3.5vw, 24px);
+            height: clamp(20px, 3.5vw, 24px);
+        }
+        
+        .stat-item .value {
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(1em, 2.5vw, 1.2em);
+            font-weight: 700;
+            color: var(--ui-green);
+        }
+
+        #shield-timer-container {
+            display: flex;
+            align-items: center;
+            /* AJUSTE: Gap e padding responsivos */
+            gap: clamp(5px, 1.5vw, 8px);
+            background: var(--ui-bg-color);
+            border: 1px solid var(--ui-border-color);
+            padding: clamp(3px, 1vw, 5px) clamp(8px, 2vw, 12px);
+            border-radius: 5px;
+            backdrop-filter: blur(5px);
+            /* AJUSTE: Largura responsiva */
+            width: clamp(60px, 12vw, 70px);
+            justify-content: center;
+        }
+        
+        #shield-timer {
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(1em, 2.5vw, 1.2em);
+            font-weight: 700;
+            color: var(--ui-blue);
+            text-shadow: 0 0 5px var(--ui-blue);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        #shield-timer-icon {
+             /* AJUSTE: Tamanho responsivo */
+             width: clamp(20px, 3.5vw, 24px);
+             height: clamp(20px, 3.5vw, 24px);
+             opacity: 0.5;
+        }
+        
+        /* Telas de Overlay */
         .overlay-screen {
             position: absolute;
             top: 0;
@@ -161,24 +300,170 @@
             visibility: hidden;
             transition: opacity 0.5s, visibility 0.5s;
             backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
             z-index: 100;
         }
-        .overlay-screen.visible { opacity: 1; visibility: visible; }
-        .overlay-panel { background: var(--ui-bg-color); border: 2px solid var(--ui-border-color); padding: clamp(20px, 5vw, 40px); border-radius: 10px; text-align: center; box-shadow: 0 0 20px var(--ui-blue); max-width: 90%; width: 500px; }
-        .overlay-title { font-size: clamp(2em, 7vw, 3em); font-weight: 700; margin: 0; }
-        #start-title { color: var(--ui-green); text-shadow: 0 0 10px var(--ui-green); }
+
+        .overlay-panel {
+            background: var(--ui-bg-color);
+            border: 2px solid var(--ui-border-color);
+            /* AJUSTE: Padding responsivo */
+            padding: clamp(20px, 5vw, 30px);
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 20px var(--ui-blue);
+            /* AJUSTE: Largura máxima para telas maiores */
+            max-width: 90%; 
+        }
+
+        .overlay-title {
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(2em, 7vw, 3em);
+            font-weight: 700;
+            margin: 0;
+        }
+
         #game-over-title { color: var(--ui-red); text-shadow: 0 0 10px var(--ui-red); }
         #stage-clear-title { color: var(--ui-green); text-shadow: 0 0 10px var(--ui-green); }
         #pause-title { color: var(--ui-blue); text-shadow: 0 0 10px var(--ui-blue); }
-        #final-score-label { font-size: clamp(1em, 2.5vw, 1.2em); color: var(--ui-blue); margin-top: clamp(15px, 3vw, 20px); }
-        #final-score-value { font-size: clamp(2em, 6vw, 2.5em); color: var(--ui-green); text-shadow: 0 0 8px var(--ui-green); }
-        .overlay-button { margin-top: clamp(20px, 5vw, 30px); padding: clamp(12px, 3vw, 15px) clamp(25px, 6vw, 40px); font-size: clamp(1.1em, 3vw, 1.4em); font-weight: 700; color: #0a192f; background-color: var(--ui-blue); border: none; border-radius: 5px; cursor: pointer; pointer-events: all; transition: background-color 0.2s, box-shadow 0.2s; }
-        .overlay-button:hover { background-color: #fff; box-shadow: 0 0 15px #fff; }
+
+        #final-score-label {
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(1em, 2.5vw, 1.2em);
+            color: var(--ui-blue);
+            margin-top: clamp(15px, 3vw, 20px);
+        }
+
+        #final-score-value {
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(2em, 6vw, 2.5em);
+            color: var(--ui-green);
+            text-shadow: 0 0 8px var(--ui-green);
+        }
+
+        .overlay-button {
+            /* AJUSTE: Margin e padding responsivos */
+            margin-top: clamp(20px, 5vw, 30px);
+            padding: clamp(8px, 2.5vw, 10px) clamp(20px, 5vw, 30px);
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(1em, 2.5vw, 1.2em);
+            font-weight: 700;
+            color: #0a192f;
+            background-color: var(--ui-blue);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            pointer-events: all;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+        .overlay-button:hover {
+            background-color: #fff;
+            box-shadow: 0 0 15px #fff;
+        }
+        
+        /* Ranking */
         #ranking-container { margin-top: clamp(15px, 4vw, 25px); }
-        #ranking-title { font-size: clamp(1.3em, 3.5vw, 1.5em); color: var(--ui-blue); margin-bottom: clamp(5px, 1.5vw, 10px); }
+        #ranking-title { 
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(1.3em, 3.5vw, 1.5em); 
+            color: var(--ui-blue); 
+            margin-bottom: clamp(5px, 1.5vw, 10px); 
+        }
         #ranking-list { list-style: none; padding: 0; margin: 0; }
-        #ranking-list li { font-size: clamp(0.9em, 2.2vw, 1.1em); padding: 2px 0; }
+        #ranking-list li { 
+            /* AJUSTE: Font-size responsivo */
+            font-size: clamp(0.9em, 2.2vw, 1.1em); 
+            padding: 2px 0; 
+        }
+
+        /* MUDANÇA: Botões de Controle (Pause/Fullscreen) */
+        .control-button-container {
+            /* AJUSTE: Largura responsiva */
+            width: clamp(40px, 8vw, 45px); 
+            pointer-events: auto;
+        }
+        .control-button {
+            /* AJUSTE: Tamanho responsivo */
+            width: clamp(35px, 7vw, 40px);
+            height: clamp(35px, 7vw, 40px);
+            background-color: var(--ui-bg-color);
+            border: 1px solid var(--ui-border-color);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .control-button svg { 
+            /* AJUSTE: Tamanho responsivo */
+            width: clamp(18px, 4vw, 20px); 
+            height: clamp(18px, 4vw, 20px); 
+            fill: var(--ui-blue); 
+        }
+
+        /* Media Query para telas menores (celulares) */
+        @media (max-width: 600px) {
+            #game-ui {
+                padding: 1.5vw; /* Reduz um pouco mais o padding em telas muito pequenas */
+            }
+
+            .info-panel {
+                padding: 1vw 2vw;
+            }
+
+            .info-panel .label {
+                font-size: 0.65em;
+            }
+
+            .info-panel .value {
+                font-size: 1.1em;
+            }
+
+            .player-stats-panel {
+                width: calc(100% - 12vw); /* Ajusta para telas muito pequenas */
+            }
+
+            .stat-item {
+                padding: 2px 5px;
+            }
+
+            .stat-icon-img {
+                width: 18px;
+                height: 18px;
+            }
+
+            .stat-item .value {
+                font-size: 0.9em;
+            }
+
+            #shield-timer-container {
+                width: 50px;
+            }
+
+            #shield-timer {
+                font-size: 1em;
+            }
+
+            .overlay-panel {
+                padding: 15px;
+            }
+
+            .overlay-title {
+                font-size: 2.2em;
+            }
+
+            .overlay-button {
+                padding: 8px 20px;
+                font-size: 1em;
+            }
+
+            #ranking-title {
+                font-size: 1.2em;
+            }
+
+            #ranking-list li {
+                font-size: 0.9em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -186,9 +471,8 @@
         <!-- Phaser renderiza o canvas aqui -->
         
         <div id="game-ui">
-            <!-- UI Superior -->
             <div class="ui-top">
-                <div class="info-panel left">
+                <div class="info-panel">
                     <div class="label">SCORE</div>
                     <div class="value" id="score-value">0</div>
                 </div>
@@ -202,16 +486,16 @@
                 </div>
                 <div id="boss-health-container">
                     <div class="boss-health-label">BOSS</div>
-                    <div class="boss-health-bar-background"><div id="boss-health-bar-fill"></div></div>
+                    <div class="boss-health-bar-background">
+                        <div id="boss-health-bar-fill"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- UI Inferior -->
             <div class="ui-bottom">
                 <div class="control-button-container">
                     <div id="fullscreen-button" class="control-button">
-                        <svg id="enter-fullscreen-icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-                        <svg id="exit-fullscreen-icon" viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+                        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
                     </div>
                 </div>
                 
@@ -224,15 +508,15 @@
                     </div>
                     <div class="stats-icons-container">
                         <div class="stat-item">
-                            <img class="stat-icon-img" src="https://i.imgur.com/NqZ1J8b.png" alt="Damage Icon"/>
+                            <img id="damage-icon" class="stat-icon-img" src="Damage_Bonus.png" alt="Damage Icon"/>
                             <span class="value" id="damage-value">1</span>
                         </div>
                         <div class="stat-item">
-                            <img class="stat-icon-img" src="https://i.imgur.com/uSoOn3T.png" alt="Cannons Icon"/>
+                            <img id="cannons-icon" class="stat-icon-img" src="Rockets_Bonus.png" alt="Cannons Icon"/>
                             <span class="value" id="cannons-value">1</span>
                         </div>
                         <div id="shield-timer-container">
-                            <img id="shield-timer-icon" class="stat-icon-img" src="https://i.imgur.com/Yt8EwV1.png" alt="Shield Timer Icon"/>
+                            <img id="shield-timer-icon" class="stat-icon-img" src="Armor_Bonus.png" alt="Shield Timer Icon"/>
                             <span id="shield-timer">30s</span>
                         </div>
                     </div>
@@ -246,18 +530,8 @@
             </div>
         </div>
         
-        <!-- Tela de Início (NOVO) -->
-        <div id="start-screen" class="overlay-screen visible">
-            <div class="overlay-panel">
-                <h1 id="start-title" class="overlay-title">SPACE SHOOTER</h1>
-                <p>Prepare-se para a batalha!</p>
-                <button id="start-button" class="overlay-button">INICIAR JOGO</button>
-            </div>
-        </div>
-
-        <!-- Outras Telas de Overlay -->
         <div id="game-over-screen" class="overlay-screen">
-            <div class="overlay-panel">
+            <div id="game-over-panel" class="overlay-panel">
                 <h1 id="game-over-title" class="overlay-title">GAME OVER</h1>
                 <div id="final-score-label">SCORE FINAL</div>
                 <div id="final-score-value">0</div>
@@ -270,255 +544,142 @@
         </div>
         
         <div id="stage-clear-screen" class="overlay-screen">
-            <div class="overlay-panel">
+            <div id="stage-clear-panel" class="overlay-panel">
                 <h1 id="stage-clear-title" class="overlay-title">STAGE CLEAR!</h1>
                 <button id="next-stage-button" class="overlay-button">PROSSEGUIR</button>
             </div>
         </div>
         
         <div id="pause-screen" class="overlay-screen">
-            <div class="overlay-panel">
+            <div id="pause-panel" class="overlay-panel">
                 <h1 id="pause-title" class="overlay-title">PAUSADO</h1>
                 <button id="resume-button" class="overlay-button">RETOMAR</button>
             </div>
         </div>
+
     </div>
 
     <script>
-    // --- Variáveis Globais ---
-    // (O restante das suas variáveis globais permanece o mesmo)
-    let player, playerBullets, enemies, meteors, enemyBullets, bossBullets, powerUps, stars;
-    let score = 0;
-    let playerHealth = 100, playerMaxHealth = 100, playerDamage = 1;
-    let extraShots = 0;
-    const MAX_EXTRA_SHOTS = 2;
-    let shieldAmount = 0, shieldDuration = 30;
-    const SHIELD_MAX_DURATION = 30, SHIELD_MAX_VALUE = 100;
-    let shieldTimerEvent;
-    let baseEnemyLevel = 1, currentStage = 1, scoreToNextBoss = 100;
-    let bossFightActive = false, bossObject = null;
-    let enemySpawnTimer, meteorSpawnTimer;
-    let lightPool = [];
-    const MAX_LIGHTS = 50;
-    let explosionEmitter;
-    const PLAYER_SPRITE_WIDTH = 120, PLAYER_SPRITE_HEIGHT = 120;
-    const ENEMY_SPRITE_WIDTH = 120, ENEMY_SPRITE_HEIGHT = 120;
-    const BOSS_SPRITE_WIDTH = 240, BOSS_SPRITE_HEIGHT = 240;
-    const BULLET_SPRITE_WIDTH = 32, BULLET_SPRITE_HEIGHT = 32;
-    const POWERUP_SPRITE_SIZE = 24;
-    let scoreTextElement, baseEnemyLevelUITextElement, healthBarFillElement, 
-        healthTextElement, shieldBarOverlayElement, shieldTimerElement, 
-        damageTextElement, extraShotsTextElement, stageTextElement,
-        bossHealthContainerElement, bossHealthBarFillElement;
-    let isPaused = false;
-    let game; // Referência global para a instância do jogo
+        // --- Variáveis Globais do Jogo ---
+        let player, playerBullets, enemies, meteors, enemyBullets, bossBullets, powerUps, stars;
+        let score = 0;
+        let playerHealth = 100, playerMaxHealth = 100, playerDamage = 1;
+        let extraShots = 0;
+        const MAX_EXTRA_SHOTS = 2;
+        let shieldAmount = 0, shieldDuration = 30;
+        const SHIELD_MAX_DURATION = 30, SHIELD_MAX_VALUE = 100;
+        let shieldTimerEvent;
 
-    // --- Configuração do Phaser ---
-    const config = {
-        type: Phaser.AUTO,
-        // Tamanho lógico do jogo
-        width: 450,
-        height: 800,
-        parent: 'game-container',
-        backgroundColor: '#061021',
-        scale: {
-            // MODO FIT: Mantém a proporção e ajusta ao contêiner pai
-            mode: Phaser.Scale.FIT,
-            autoCenter: Phaser.Scale.CENTER_BOTH
-        },
-        physics: {
-            default: 'arcade',
-            arcade: {
-                gravity: { y: 0 },
-                debug: false 
+        let baseEnemyLevel = 1, currentStage = 1, scoreToNextBoss = 100;
+        let bossFightActive = false, bossObject = null;
+        
+        let enemySpawnTimer, meteorSpawnTimer;
+
+        let lightPool = [];
+        const MAX_LIGHTS = 50;
+        let explosionEmitter;
+
+        const PLAYER_SPRITE_WIDTH = 120, PLAYER_SPRITE_HEIGHT = 120;
+        const ENEMY_SPRITE_WIDTH = 120, ENEMY_SPRITE_HEIGHT = 120;
+        const BOSS_SPRITE_WIDTH = 240, BOSS_SPRITE_HEIGHT = 240;
+        const BULLET_SPRITE_WIDTH = 32, BULLET_SPRITE_HEIGHT = 32;
+        const POWERUP_SPRITE_SIZE = 24;
+
+        let scoreTextElement, baseEnemyLevelUITextElement, healthBarFillElement, 
+            healthTextElement, shieldBarOverlayElement, shieldTimerElement, 
+            damageTextElement, extraShotsTextElement, stageTextElement,
+            bossHealthContainerElement, bossHealthBarFillElement;
+        
+        let isPaused = false;
+
+        // --- Configuração do Phaser ---
+        const config = {
+            type: Phaser.AUTO,
+            width: window.innerWidth, // Define a largura inicial como a largura da janela
+            height: window.innerHeight, // Define a altura inicial como a altura da janela
+            parent: 'game-container',
+            backgroundColor: '#061021',
+            scale: {
+                mode: Phaser.Scale.RESIZE, // Alterado para RESIZE para melhor adaptação
+                autoCenter: Phaser.Scale.CENTER_BOTH
+            },
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 },
+                    debug: false 
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
             }
-        },
-        scene: {
-            preload: preload,
-            create: create,
-            update: update
-        }
-    };
-    
-    // Inicia o jogo assim que a página carregar
-    window.onload = () => {
-        // A inicialização do jogo é adiada até o usuário clicar em "INICIAR"
-        setupUI();
-    };
+        };
 
-    // --- Funções Principais do Phaser ---
-    function preload() {
-        // Usei links de imagens para garantir que funcionem sem arquivos locais
-        this.load.image('player_sprite', 'https://i.imgur.com/eF44tY5.png');
-        this.load.image('enemy1_sprite', 'https://i.imgur.com/5p2S5Vp.png');
-        this.load.image('boss_sprite', 'https://i.imgur.com/Oq2B5bJ.png'); 
-        this.load.image('player_bullet_sprite', 'https://i.imgur.com/YvjQnQ5.png');
-        this.load.image('enemy_bullet_sprite', 'https://i.imgur.com/u1s3zM4.png'); 
-        this.load.image('powerup_damage', 'https://i.imgur.com/NqZ1J8b.png');
-        this.load.image('powerup_health', 'https://i.imgur.com/pXk2J3j.png');
-        this.load.image('powerup_extraShot', 'https://i.imgur.com/uSoOn3T.png');
-        this.load.image('powerup_shield', 'https://i.imgur.com/Yt8EwV1.png');
-        this.load.atlas('flares', 'https://labs.phaser.io/assets/particles/flares.png', 'https://labs.phaser.io/assets/particles/flares.json');
-        
-        for (let i = 1; i <= 10; i++) {
-            const num = i < 10 ? `0${i}` : i;
-            // Imagens de meteoros de um placeholder
-            this.load.image(`Meteor_${num}`, `https://i.imgur.com/JLXma3X.png`);
-        }
-    }
+        const game = new Phaser.Game(config);
 
-    function create() {
-        // O jogo está rodando, então a cena 'this' é válida
-        this.scene.pause(); // Pausa a cena para aguardar o início do jogador
+        // --- Funções Principais do Phaser ---
 
-        setupVisuals.call(this);
-        setupPlayer.call(this);
-        setupGroups.call(this);
-        // UI já foi configurada fora, mas podemos re-sincronizar se necessário
-        setupTimers.call(this);
-        setupInput.call(this);
-        setupCollisions.call(this);
-    }
-
-    function update() {
-        if (!player || !player.active || isPaused) return;
-
-        stars.children.each(star => {
-            if (star && star.y > config.height + 10) star.destroy();
-        });
-        
-        if (player.shieldSprite) player.shieldSprite.setPosition(player.x, player.y);
-
-        if (!bossFightActive && score >= scoreToNextBoss) {
-             startBossFight.call(this);
-        }
-    }
-    
-    // --- Funções de Setup ---
-    function setupUI() {
-        // Mapeamento de elementos
-        const ids = ['score-value', 'level-value', 'stage-value', 'health-bar-fill', 'health-bar-text', 'shield-bar-overlay', 'shield-timer', 'damage-value', 'cannons-value', 'boss-health-container', 'boss-health-bar-fill'];
-        [scoreTextElement, baseEnemyLevelUITextElement, stageTextElement, healthBarFillElement, healthTextElement, shieldBarOverlayElement, shieldTimerElement, damageTextElement, extraShotsTextElement, bossHealthContainerElement, bossHealthBarFillElement] = ids.map(id => document.getElementById(id));
-        
-        // --- NOVO: Lógica da Tela de Início ---
-        document.getElementById('start-button').addEventListener('click', () => {
-            // Inicia o jogo e entra em tela cheia
-            toggleApiFullscreen();
-            document.getElementById('start-screen').classList.remove('visible');
+        function preload() {
+            this.load.image('player_sprite', 'player1.png');
+            this.load.image('enemy1_sprite', 'enemy1.png');
+            this.load.image('boss_sprite', 'boss.png'); 
+            this.load.image('player_bullet_sprite', 'player_bullet.png');
+            this.load.image('enemy_bullet_sprite', 'enemy_bullet.png'); 
+            this.load.image('powerup_damage', 'Damage_Bonus.png');
+            this.load.image('powerup_health', 'HP_Bonus.png');
+            this.load.image('powerup_extraShot', 'Rockets_Bonus.png');
+            this.load.image('powerup_shield', 'Armor_Bonus.png');
+            this.load.atlas('flares', 'https://labs.phaser.io/assets/particles/flares.png', 'https://labs.phaser.io/assets/particles/flares.json');
             
-            if (!game) {
-                game = new Phaser.Game(config);
-            } else {
-                game.scene.getScene('default').scene.resume();
+            for (let i = 1; i <= 10; i++) {
+                const num = i < 10 ? `0${i}` : i;
+                this.load.image(`Meteor_${num}`, `Meteor_${num}.png`);
             }
-        });
+        }
 
-        // Event Listeners dos botões
-        document.getElementById('restart-button').addEventListener('click', () => {
-            document.getElementById('game-over-screen').classList.remove('visible');
-            resetGameVariables();
-            game.scene.getScene('default').scene.restart();
-        });
-        
-        document.getElementById('next-stage-button').addEventListener('click', () => startNextStage.call(game.scene.getScene('default')));
-        document.getElementById('resume-button').addEventListener('click', () => togglePause.call(game.scene.getScene('default')));
-        document.getElementById('pause-button').addEventListener('click', () => togglePause.call(game.scene.getScene('default')));
-        
-        // --- CORREÇÃO: Lógica de Tela Cheia ---
-        document.getElementById('fullscreen-button').addEventListener('click', toggleApiFullscreen);
-        document.addEventListener('fullscreenchange', updateFullscreenIcons);
+        function create() {
+            setupVisuals.call(this);
+            setupPlayer.call(this);
+            setupGroups.call(this);
+            setupUI.call(this);
+            setupTimers.call(this);
+            setupInput.call(this);
+            setupCollisions.call(this);
 
-        updateUI(); 
-    }
-    
-    // --- CORREÇÃO: Funções de Tela Cheia ---
-    function toggleApiFullscreen() {
-        const container = document.getElementById('game-container');
-        if (!document.fullscreenElement) {
-            // Entra em tela cheia no contêiner principal
-            container.requestFullscreen().catch(err => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            // Listener para redimensionamento da janela
+            this.scale.on('resize', resizeGame, this);
+            resizeGame.call(this, this.scale.gameSize); // Chama a função de redimensionamento na criação para ajustar o canvas
+        }
+
+        function update() {
+            if (!player.active || isPaused) return;
+
+            stars.children.each(star => {
+                if (star && star.y > this.scale.height + 10) star.destroy(); // Usa this.scale.height
             });
-        } else {
-            // Sai da tela cheia
-            document.exitFullscreen();
+            
+            if (player.shieldSprite) player.shieldSprite.setPosition(player.x, player.y);
+
+            if (!bossFightActive && score >= scoreToNextBoss) {
+                 startBossFight.call(this);
+            }
         }
-    }
-
-    function updateFullscreenIcons() {
-        const isFullscreen = !!document.fullscreenElement;
-        document.getElementById('enter-fullscreen-icon').style.display = isFullscreen ? 'none' : 'block';
-        document.getElementById('exit-fullscreen-icon').style.display = isFullscreen ? 'block' : 'none';
-    }
-    
-    // --- CORREÇÃO: Função de Pausa ---
-    function togglePause() {
-        // 'this' agora se refere à cena do Phaser
-        isPaused = !isPaused;
-        const pauseScreen = document.getElementById('pause-screen');
-        if (isPaused) {
-            this.scene.pause();
-            pauseScreen.classList.add('visible');
-        } else {
-            this.scene.resume();
-            pauseScreen.classList.remove('visible');
+        
+        // Função para redimensionar o jogo e o canvas
+        function resizeGame(gameSize) {
+            const { width, height } = gameSize;
+            this.cameras.main.setSize(width, height);
+            // Atualiza a posição do player e outros elementos se necessário
+            if (player) {
+                player.x = width / 2;
+                player.y = height - 100;
+            }
+            // Se houver elementos que dependem da largura/altura do jogo, ajuste-os aqui
         }
-    }
-    
-    // --- CORREÇÃO: Função de Game Over ---
-    function gameOver() {
-        if (!player.active) return;
-        player.setActive(false);
-        this.physics.pause();
-        this.time.removeAllEvents();
-        createExplosionLight(player.x, player.y, this);
-        if (explosionEmitter) explosionEmitter.explode(50, player.x, player.y);
-        if(player.shieldSprite) player.shieldSprite.setVisible(false);
-        
-        if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
-        
-        const gameOverScreen = document.getElementById('game-over-screen');
-        document.getElementById('final-score-value').textContent = score;
-        gameOverScreen.classList.add('visible');
 
-        updateRanking(score);
-    }
-
-    // --- CORREÇÃO: Função de Fim de Estágio ---
-    function endBossFight() {
-        this.physics.pause();
-        meteorSpawnTimer.paused = true;
-        
-        if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
-
-        const screen = document.getElementById('stage-clear-screen');
-        screen.classList.add('visible');
-    }
-
-    function startNextStage() {
-        const screen = document.getElementById('stage-clear-screen');
-        screen.classList.remove('visible');
-
-        this.physics.resume();
-        meteorSpawnTimer.paused = false;
-        enemySpawnTimer.paused = false;
-
-        currentStage++;
-        scoreToNextBoss = Math.ceil(scoreToNextBoss * 1.40);
-        
-        // Aumenta o dano do jogador a cada novo estágio
-        baseEnemyLevel = Math.floor(score / 50) + 1;
-        playerDamage = baseEnemyLevel;
-
-        updateUI();
-    }
-
-    //
-    // --- O RESTANTE DO SEU CÓDIGO JAVASCRIPT ---
-    // (Todas as outras funções como setupVisuals, setupPlayer, classes, etc. continuam aqui)
-    // Cole o restante do seu JS a partir de 'function setupVisuals()' aqui, sem alterações.
-    // ...
-    // --- Funções de Setup ---
+        // --- Funções de Setup ---
 
         function setupVisuals() {
             const interFont = document.createElement('link');
@@ -557,7 +718,8 @@
         }
 
         function setupPlayer() {
-            player = this.add.sprite(config.width / 2, config.height - 100, 'player_sprite');
+            // Posiciona o player com base na largura e altura atual do jogo
+            player = this.add.sprite(this.scale.width / 2, this.scale.height - 100, 'player_sprite');
             player.shieldSprite = this.add.sprite(player.x, player.y, 'shield_glow_particle')
                 .setBlendMode('ADD')
                 .setDepth(player.depth - 1)
@@ -583,6 +745,35 @@
             powerUps = this.physics.add.group({ classType: PowerUp, runChildUpdate: true });
         }
 
+        function setupUI() {
+            // Mapeamento de elementos
+            const ids = ['score-value', 'level-value', 'stage-value', 'health-bar-fill', 'health-bar-text', 'shield-bar-overlay', 'shield-timer', 'damage-value', 'cannons-value', 'boss-health-container', 'boss-health-bar-fill'];
+            [scoreTextElement, baseEnemyLevelUITextElement, stageTextElement, healthBarFillElement, healthTextElement, shieldBarOverlayElement, shieldTimerElement, damageTextElement, extraShotsTextElement, bossHealthContainerElement, bossHealthBarFillElement] = ids.map(id => document.getElementById(id));
+            
+            // Event Listeners dos botões
+            document.getElementById('restart-button').addEventListener('click', () => {
+                document.getElementById('game-over-screen').style.opacity = '0';
+                document.getElementById('game-over-screen').style.visibility = 'hidden';
+                resetGameVariables();
+                this.scene.restart();
+            });
+            
+            document.getElementById('next-stage-button').addEventListener('click', () => startNextStage.call(this));
+            document.getElementById('resume-button').addEventListener('click', () => togglePause.call(this));
+            document.getElementById('pause-button').addEventListener('click', () => togglePause.call(this));
+            
+            // Adiciona listener para o botão de fullscreen
+            document.getElementById('fullscreen-button').addEventListener('click', () => {
+                if (this.scale.isFullscreen) {
+                    this.scale.stopFullscreen();
+                } else {
+                    this.scale.startFullscreen();
+                }
+            });
+
+            updateUI(); 
+        }
+
         function setupTimers() {
             this.time.addEvent({ delay: 50, callback: spawnStar, callbackScope: this, loop: true });
             this.time.addEvent({ delay: 400, callback: firePlayerBullet, callbackScope: this, loop: true });
@@ -592,7 +783,7 @@
 
         function setupInput() {
             this.input.on('pointermove', (pointer) => {
-                if (this.sys.game.device.input.touch && !pointer.isDown) return;
+                // Remove a condição !pointer.isDown para permitir movimento contínuo no toque
                 if(player.active) {
                     this.tweens.add({
                         targets: player,
@@ -604,6 +795,7 @@
                 }
             }, this);
 
+            // Pausar com a barra de espaço
             this.input.keyboard.on('keydown-SPACE', () => togglePause.call(this));
         }
 
@@ -617,6 +809,8 @@
             this.physics.add.overlap(player, enemies, (p, e) => hitPlayerByEnemy(p, e, this), null, this);
             this.physics.add.overlap(player, powerUps, collectPowerUp, null, this);
         }
+
+        // --- Classes do Jogo ---
 
         class Bullet extends Phaser.Physics.Arcade.Sprite {
             constructor(scene, x, y) {
@@ -673,7 +867,7 @@
                         this.body.setCollideWorldBounds(false);
                         this.scene.time.delayedCall(1000, () => this.kill());
                     }
-                } else if (this.y < -20 || this.y > config.height + 20 || this.x < -20 || this.x > config.width + 20) {
+                } else if (this.y < -20 || this.y > this.scene.scale.height + 20 || this.x < -20 || this.x > this.scene.scale.width + 20) {
                     this.kill();
                 }
             }
@@ -745,7 +939,7 @@
                 super.preUpdate(time, delta);
                 if(this.active) {
                     this.updateHealthBar();
-                    if (this.y > config.height + this.displayHeight) this.kill();
+                    if (this.y > this.scene.scale.height + this.displayHeight) this.kill(); // Usa this.scene.scale.height
                 }
             }
         }
@@ -834,7 +1028,7 @@
                 this.scene.tweens.add({
                     targets: this, y: 150, duration: 2000, ease: 'Cubic.easeOut',
                     onComplete: () => {
-                        this.horizontalTween = this.scene.tweens.add({ targets: this, x: { from: 80, to: config.width - 80 }, ease: 'Sine.easeInOut', duration: 3000 / speedMultiplier, repeat: -1, yoyo: true });
+                        this.horizontalTween = this.scene.tweens.add({ targets: this, x: { from: 80, to: this.scene.scale.width - 80 }, ease: 'Sine.easeInOut', duration: 3000 / speedMultiplier, repeat: -1, yoyo: true }); // Usa this.scene.scale.width
                         this.verticalTween = this.scene.tweens.add({ targets: this, y: { from: 120, to: 220 }, ease: 'Sine.easeInOut', duration: 1875 / speedMultiplier, repeat: -1, yoyo: true });
                     }
                 });
@@ -971,7 +1165,7 @@
                 if (this.active && !this.isBoss) {
                     this.updateHealthBar();
                     this.levelText.setPosition(this.x, this.y - this.displayHeight / 2 - 35);
-                    if (this.y > config.height + 50) this.kill();
+                    if (this.y > this.scene.scale.height + 50) this.kill(); // Usa this.scene.scale.height
                 }
             }
         }
@@ -993,9 +1187,11 @@
 
             preUpdate(time, delta) {
                 super.preUpdate(time, delta);
-                if (this.y > config.height + 50) this.disableBody(true, true);
+                if (this.y > this.scene.scale.height + 50) this.disableBody(true, true); // Usa this.scene.scale.height
             }
         }
+
+        // --- Funções de Lógica do Jogo ---
 
         function firePlayerBullet() {
             if (!player.active) return;
@@ -1015,7 +1211,7 @@
         }
 
         function spawnStar() {
-            const x = Phaser.Math.Between(0, config.width);
+            const x = Phaser.Math.Between(0, this.scale.width); // Usa this.scale.width
             const star = stars.create(x, -10, 'star_particle');
             if (star) {
                 star.setVelocityY(Phaser.Math.Between(50, 200)).setScale(Phaser.Math.FloatBetween(0.2, 1)).setAlpha(star.scale * 0.8);
@@ -1024,14 +1220,14 @@
 
         function spawnEnemy() {
             if (bossFightActive) return;
-            const x = Phaser.Math.Between(50, config.width - 50);
+            const x = Phaser.Math.Between(50, this.scale.width - 50); // Usa this.scale.width
             const enemyLevelToSpawn = (baseEnemyLevel <= 3) ? baseEnemyLevel : Phaser.Math.Between(baseEnemyLevel - 2, baseEnemyLevel);
             const enemy = enemies.get();
             if (enemy) enemy.spawn(x, -50, false, enemyLevelToSpawn);
         }
         
         function spawnMeteor() {
-            const x = Phaser.Math.Between(50, config.width - 50);
+            const x = Phaser.Math.Between(50, this.scale.width - 50); // Usa this.scale.width
             const meteor = meteors.get();
             if (meteor) meteor.spawn(x, -100);
         }
@@ -1044,15 +1240,43 @@
 
             if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'flex';
 
-            let warningText = this.add.text(config.width/2, config.height/2, 'WARNING!', { fontSize: '60px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 8 }).setOrigin(0.5).setDepth(200).setAlpha(0);
+            let warningText = this.add.text(this.scale.width/2, this.scale.height/2, 'WARNING!', { fontSize: '60px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 8 }).setOrigin(0.5).setDepth(200).setAlpha(0); // Usa this.scale.width e this.scale.height
             this.tweens.add({
                 targets: warningText, alpha: 1, scale: {from: 2, to: 1}, duration: 500, yoyo: true, hold: 1500,
                 onComplete: () => {
                     warningText.destroy();
                     bossObject = enemies.get();
-                    if (bossObject) bossObject.spawn(config.width / 2, -100, true);
+                    if (bossObject) bossObject.spawn(this.scale.width / 2, -100, true); // Usa this.scale.width
                 }
             });
+        }
+
+        function endBossFight() {
+            this.physics.pause();
+            meteorSpawnTimer.paused = true;
+            
+            if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
+
+            const screen = document.getElementById('stage-clear-screen');
+            screen.style.visibility = 'visible';
+            screen.style.opacity = '1';
+        }
+
+        function startNextStage() {
+            const screen = document.getElementById('stage-clear-screen');
+            screen.style.visibility = 'hidden';
+            screen.style.opacity = '0';
+
+            this.physics.resume();
+            meteorSpawnTimer.paused = false;
+            enemySpawnTimer.paused = false;
+
+            currentStage++;
+            scoreToNextBoss = Math.ceil(scoreToNextBoss * 1.40);
+            
+            playerDamage = baseEnemyLevel;
+
+            updateUI();
         }
         
         function handlePlayerHit(bullet, target) {
@@ -1180,6 +1404,25 @@
             if (extraShotsTextElement) extraShotsTextElement.textContent = 1 + extraShots;
         }
 
+        function gameOver() {
+            if (!player.active) return;
+            player.setActive(false);
+            this.physics.pause();
+            this.time.removeAllEvents();
+            createExplosionLight(player.x, player.y, this);
+            if (explosionEmitter) explosionEmitter.explode(50, player.x, player.y);
+            if(player.shieldSprite) player.shieldSprite.setVisible(false);
+            
+            if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
+            
+            const gameOverScreen = document.getElementById('game-over-screen');
+            document.getElementById('final-score-value').textContent = score;
+            gameOverScreen.style.visibility = 'visible';
+            gameOverScreen.style.opacity = '1';
+
+            updateRanking(score);
+        }
+
         function resetGameVariables() {
             score = 0; playerHealth = 100; playerDamage = 1; extraShots = 0;
             shieldAmount = 0; shieldDuration = SHIELD_MAX_DURATION;
@@ -1193,6 +1436,23 @@
             if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
         }
         
+        // --- Funções de Controle ---
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const pauseScreen = document.getElementById('pause-screen');
+            if (isPaused) {
+                this.scene.pause();
+                pauseScreen.style.visibility = 'visible';
+                pauseScreen.style.opacity = '1';
+            } else {
+                this.scene.resume();
+                pauseScreen.style.visibility = 'hidden';
+                pauseScreen.style.opacity = '0';
+            }
+        }
+        
+        // --- Funções de Ranking ---
         function getRanking() {
             const rankingJSON = localStorage.getItem('spaceShooterRanking');
             return rankingJSON ? JSON.parse(rankingJSON) : [];
@@ -1228,6 +1488,7 @@
             }
         }
 
+        // --- Funções Utilitárias ---
         function getLightFromPool() {
             return lightPool.find(light => !light.visible) || null;
         }
