@@ -1015,7 +1015,15 @@
         function setupTimers() {
             this.time.addEvent({ delay: performanceMode ? 100 : 50, callback: spawnStar, callbackScope: this, loop: true });
             this.time.addEvent({ delay: GAME_CONFIG.player.fireRate, callback: firePlayerBullet, callbackScope: this, loop: true });
-            enemySpawnTimer = this.time.addEvent({ delay: GAME_CONFIG.enemy.baseFireRate, callback: spawnEnemy, callbackScope: this, loop: true });
+            
+            const spawnDelay = GAME_CONFIG.enemy.baseFireRate - (GAME_CONFIG.enemySpawnDelayReductionPerStage * (currentStage - 1));
+            enemySpawnTimer = this.time.addEvent({ 
+                delay: Math.max(500, spawnDelay), // Garante que o delay não seja menor que 0.5s
+                callback: spawnEnemy, 
+                callbackScope: this, 
+                loop: true 
+            });
+
             meteorSpawnTimer = this.time.addEvent({ delay: 6338, callback: spawnMeteor, callbackScope: this, loop: true });
         }
 
@@ -1277,7 +1285,7 @@
             spawnAsMinion(x, y, level) {
                 this.setTexture('enemy1_sprite');
                 this.setAngle(0);
-                this.setScale(1);
+                this.setScale(0.9); // Redução de 10%
                 
                 const healthMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
                 this.health = Math.ceil(GAME_CONFIG.initialEnemyHP * healthMultiplier * (1 + level * 0.2));
@@ -1286,14 +1294,14 @@
                 const damageMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
                 this.damage = (5 + (level - 1)) * damageMultiplier;
 
-                const speedMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
+                const speedMultiplier = Math.pow(GAME_CONFIG.enemySpeedIncreasePerStage, currentStage - 1);
                 const levelSpeedIncreaseFactor = Math.min((level - 1) * 0.05, 0.8);
                 this.speed = GAME_CONFIG.enemy.baseSpeed * speedMultiplier * (1 + levelSpeedIncreaseFactor);
                 this.setVelocityY(this.speed);
                 
-                const enemyHitboxWidth = ENEMY_SPRITE_WIDTH * 0.70;
-                const enemyHitboxHeight = ENEMY_SPRITE_HEIGHT * 0.97;
-                this.body.setSize(enemyHitboxWidth, enemyHitboxHeight).setOffset((ENEMY_SPRITE_WIDTH - enemyHitboxWidth) / 1.7, (ENEMY_SPRITE_HEIGHT - enemyHitboxHeight) / 2);
+                const enemyHitboxWidth = (ENEMY_SPRITE_WIDTH * 0.70) * 0.9;
+                const enemyHitboxHeight = (ENEMY_SPRITE_HEIGHT * 0.97) * 0.9;
+                this.body.setSize(enemyHitboxWidth, enemyHitboxHeight).setOffset((this.width - enemyHitboxWidth) / 2, (this.height - enemyHitboxHeight) / 2);
 
                 this.fireTimer.delay = GAME_CONFIG.enemy.baseFireRate - (level * 20);
                 this.fireTimer.callback = this.fireBullet;
@@ -1680,8 +1688,6 @@
             screen.style.opacity = '1';
         }
 
-        // --- CORREÇÃO LÓGICA DA LOJA E PAUSA ---
-
         function pauseGame(sceneContext) {
             if (isPaused) return;
             isPaused = true;
@@ -1704,7 +1710,7 @@
             if (!isGameStarted) return;
             isShopOpenFromPause = fromPause;
 
-            pauseGame(this); // Pausa o jogo sem mostrar o menu de pausa
+            pauseGame(this); 
 
             if (!fromPause) {
                 document.getElementById('stage-clear-screen').style.visibility = 'hidden';
@@ -1724,7 +1730,7 @@
             const shopScreen = document.getElementById('shop-screen');
             shopScreen.style.visibility = 'hidden';
             shopScreen.style.opacity = '0';
-            resumeGame(this); // Retoma o jogo
+            resumeGame(this); 
         }
 
         function startNextStage() {
@@ -1732,7 +1738,11 @@
             document.getElementById('shop-screen').style.visibility = 'hidden';
             document.getElementById('shop-screen').style.opacity = '0';
 
-            resumeGame(this); // Retoma o jogo para o próximo estágio
+            resumeGame(this);
+            
+            const spawnDelay = GAME_CONFIG.enemy.baseFireRate - (GAME_CONFIG.enemySpawnDelayReductionPerStage * (currentStage - 1));
+            enemySpawnTimer.delay = Math.max(500, spawnDelay);
+
             meteorSpawnTimer.paused = false;
             enemySpawnTimer.paused = false;
 
@@ -1811,7 +1821,12 @@
 
             if (shieldAmount > 0) {
                 shieldAmount -= damage;
-                if (shieldAmount < 0) { playerHealth += shieldAmount; shieldAmount = 0; }
+                if (shieldAmount <= 0) {
+                    shieldAmount = 0;
+                    if (shieldTimerEvent) shieldTimerEvent.destroy();
+                    scene.tweens.killTweensOf(player.shieldSprite);
+                    player.shieldSprite.setVisible(false);
+                }
             } else {
                 playerHealth -= damage;
             }
@@ -2104,6 +2119,7 @@
             container.innerHTML = ''; 
 
             const items = [
+                { id: 'heal', name: 'Recuperar 50 HP', cost: GAME_CONFIG.shop.healCost },
                 { id: 'health', name: 'Vida Máxima +10%', cost: shopPrices.health },
                 { id: 'shield', name: '+1s Duração do Escudo', cost: shopPrices.shield },
                 { id: 'crit', name: `+0.5% Chance Crítico`, cost: shopPrices.crit },
@@ -2129,14 +2145,20 @@
         }
 
         function buyShopItem(itemId) {
-            if (coins >= shopPrices[itemId]) {
-                coins -= Math.ceil(shopPrices[itemId]);
-                shopPrices[itemId] *= GAME_CONFIG.shop.priceIncreaseMultiplier;
+            const cost = (itemId === 'heal') ? GAME_CONFIG.shop.healCost : shopPrices[itemId];
 
-                if (itemId === 'health') permanentHealthBonus += 0.1;
-                if (itemId === 'shield') permanentShieldBonus += 1;
-                if (itemId === 'crit') permanentCritBonus += 0.005;
-                if (itemId === 'damage') playerDamage++;
+            if (coins >= cost) {
+                coins -= Math.ceil(cost);
+                
+                if (itemId === 'heal') {
+                    playerHealth = Math.min(playerMaxHealth, playerHealth + 50);
+                } else {
+                    shopPrices[itemId] *= GAME_CONFIG.shop.priceIncreaseMultiplier;
+                    if (itemId === 'health') permanentHealthBonus += 0.1;
+                    if (itemId === 'shield') permanentShieldBonus += 1;
+                    if (itemId === 'crit') permanentCritBonus += 0.005;
+                    if (itemId === 'damage') playerDamage++;
+                }
                 
                 updateUI();
                 updateShopUI();
