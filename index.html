@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <!-- MELHORIA: Adiciona meta tag para uma melhor experiência em mobile -->
     <meta name="mobile-web-app-capable" content="yes">
     <title>Space Shooter: Boss Fight</title>
     <script src="phaser.min.js"></script>
@@ -14,7 +13,7 @@
             --ui-green: #00ff8c;
             --ui-red: #ff4d4d;
             --ui-yellow-crit: #ffc700;
-            --ui-bg-color: rgba(10, 25, 47, 0.85);
+            --ui-bg-color: rgba(10, 25, 47, 0.9);
             --ui-border-color: rgba(0, 216, 255, 0.5);
             --dark-royal-blue: #061021;
         }
@@ -34,8 +33,6 @@
         #game-container {
             position: relative;
             width: 100vw;
-            /* MELHORIA: Altura agora é controlada por JavaScript para precisão */
-            /* height: 100vh; */ 
             cursor: default; 
             display: flex;
             justify-content: center;
@@ -89,14 +86,18 @@
             padding: clamp(5px, 1.5vw, 15px) clamp(10px, 2.5vw, 25px);
             color: white;
             font-weight: 700;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
             clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 75%);
         }
         
         .info-panel.right {
              clip-path: polygon(0 0, 100% 0, 100% 75%, 95% 100%, 0 100%);
              text-align: right;
+        }
+        
+        /* NOVO: Classe para aplicar o efeito de blur condicionalmente */
+        .blur-effect {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
 
         .info-panel .label {
@@ -170,7 +171,6 @@
             background-color: var(--ui-bg-color);
             border: 1px solid var(--ui-border-color);
             clip-path: polygon(0 5px, 5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px));
-            backdrop-filter: blur(5px);
         }
         
         .progress-bar-fill {
@@ -213,7 +213,7 @@
             background: var(--ui-bg-color);
             border: 1px solid var(--ui-border-color);
             padding: clamp(3px, 1vw, 5px) clamp(8px, 2vw, 12px);
-            border-radius: 5px; backdrop-filter: blur(5px);
+            border-radius: 5px; 
         }
         
         .stat-icon-img {
@@ -232,7 +232,7 @@
             background: var(--ui-bg-color);
             border: 1px solid var(--ui-border-color);
             padding: clamp(3px, 1vw, 5px) clamp(8px, 2vw, 12px);
-            border-radius: 5px; backdrop-filter: blur(5px);
+            border-radius: 5px; 
             width: clamp(60px, 12vw, 70px);
             justify-content: center;
         }
@@ -258,10 +258,8 @@
             flex-direction: column;
             opacity: 0; visibility: hidden;
             transition: opacity 0.5s, visibility 0.5s;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
             z-index: 100;
-            pointer-events: all; /* Permite cliques nos overlays */
+            pointer-events: all;
         }
 
         .overlay-panel {
@@ -284,6 +282,7 @@
         #stage-clear-title { color: var(--ui-green); text-shadow: 0 0 10px var(--ui-green); }
         #pause-title { color: var(--ui-blue); text-shadow: 0 0 10px var(--ui-blue); }
         #start-title { color: var(--ui-blue); text-shadow: 0 0 10px var(--ui-blue); margin-bottom: 20px;}
+        #settings-title { color: var(--ui-blue); text-shadow: 0 0 10px var(--ui-blue); margin-bottom: 25px;}
 
         #final-score-label {
             font-size: clamp(1em, 2.5vw, 1.2em);
@@ -343,6 +342,62 @@
             width: clamp(20px, 5vw, 22px); 
             height: clamp(20px, 5vw, 22px); 
             fill: var(--ui-blue); 
+        }
+
+        /* NOVO: Estilos para a tela de configurações e toggle switch */
+        .start-menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 300px;
+            margin: 15px 0;
+            font-size: clamp(1em, 3vw, 1.2em);
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--ui-green);
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
         }
     </style>
 </head>
@@ -416,7 +471,25 @@
             <div id="start-screen" class="overlay-screen" style="visibility: visible; opacity: 1;">
                 <div class="overlay-panel">
                     <h1 id="start-title" class="overlay-title">SPACE SHOOTER</h1>
-                    <button id="start-game-button" class="overlay-button">INICIAR JOGO</button>
+                    <div class="start-menu-buttons">
+                        <button id="start-game-button" class="overlay-button">INICIAR JOGO</button>
+                        <button id="settings-button" class="overlay-button">CONFIGURAÇÕES</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- NOVO: Tela de Configurações -->
+            <div id="settings-screen" class="overlay-screen">
+                <div class="overlay-panel">
+                    <h1 id="settings-title" class="overlay-title">CONFIGURAÇÕES</h1>
+                    <div class="settings-row">
+                        <span>Melhor Desempenho</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="performance-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <button id="back-button" class="overlay-button">VOLTAR</button>
                 </div>
             </div>
 
@@ -465,6 +538,8 @@
         
         let enemySpawnTimer, meteorSpawnTimer;
 
+        // NOVO: Variável para controlar o modo de performance
+        let performanceMode = false;
         let lightPool = [];
         const MAX_LIGHTS = 50;
         let explosionEmitter;
@@ -483,42 +558,75 @@
         let isPaused = false;
         let isGameStarted = false;
 
-        // --- Configuração do Phaser ---
-        const config = {
-            type: Phaser.AUTO,
-            width: 450,
-            height: 800,
-            parent: 'game-container',
-            backgroundColor: '#061021',
-            scale: {
-                mode: Phaser.Scale.FIT,
-                autoCenter: Phaser.Scale.CENTER_BOTH
-            },
-            physics: {
-                default: 'arcade',
-                arcade: {
-                    gravity: { y: 0 },
-                    debug: false 
-                }
-            },
-            scene: {
-                preload: preload,
-                create: create,
-                update: update
-            }
-        };
+        // --- Lógica de Configurações e Detecção ---
 
-        // MELHORIA: Função para ajustar o tamanho do contêiner principal
+        // NOVO: Função para detectar se é um dispositivo móvel
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // NOVO: Função para aplicar as configurações de performance
+        function applyPerformanceSettings() {
+            const uiElementsWithBlur = document.querySelectorAll('.info-panel, .progress-bar-background, .stat-item, #shield-timer-container, .overlay-screen .overlay-panel');
+            if (performanceMode) {
+                uiElementsWithBlur.forEach(el => el.classList.remove('blur-effect'));
+            } else {
+                uiElementsWithBlur.forEach(el => el.classList.add('blur-effect'));
+            }
+        }
+
+        // NOVO: Carrega a configuração salva ou detecta o dispositivo
+        function loadSettings() {
+            const savedSetting = localStorage.getItem('spaceShooterPerformanceMode');
+            if (savedSetting !== null) {
+                performanceMode = JSON.parse(savedSetting);
+            } else {
+                // Se não houver configuração salva, ativa o modo performance para mobile por padrão
+                performanceMode = isMobileDevice();
+            }
+            document.getElementById('performance-toggle').checked = performanceMode;
+            applyPerformanceSettings();
+        }
+
+        // --- Configuração do Phaser ---
+        
+        // NOVO: A configuração do Phaser agora é definida após a detecção de performance
+        let game;
+        
+        function initializeGame() {
+            const config = {
+                type: performanceMode ? Phaser.CANVAS : Phaser.AUTO,
+                width: 450,
+                height: 800,
+                parent: 'game-container',
+                backgroundColor: '#061021',
+                scale: {
+                    mode: Phaser.Scale.FIT,
+                    autoCenter: Phaser.Scale.CENTER_BOTH
+                },
+                physics: {
+                    default: 'arcade',
+                    arcade: {
+                        gravity: { y: 0 },
+                        debug: false 
+                    }
+                },
+                scene: {
+                    preload: preload,
+                    create: create,
+                    update: update
+                }
+            };
+            game = new Phaser.Game(config);
+        }
+
         function resizeGameContainer() {
             const container = document.getElementById('game-container');
             container.style.height = `${window.innerHeight}px`;
         }
 
-        // Ajusta o tamanho ao carregar e ao redimensionar a janela
         window.addEventListener('resize', resizeGameContainer);
-        resizeGameContainer(); // Chamada inicial
-
-        const game = new Phaser.Game(config);
+        resizeGameContainer();
 
         // --- Funções Principais do Phaser ---
 
@@ -564,7 +672,6 @@
                 }, 50); 
             };
             
-            // MELHORIA: A função de ajuste do contêiner também chama o ajuste da UI
             const fullResize = () => {
                 resizeGameContainer();
                 updateUiPosition();
@@ -609,12 +716,14 @@
             graphics.generateTexture('shield_glow_particle', 96, 96);
             graphics.destroy();
 
-            this.lights.enable();
-            this.lights.setAmbientColor(0x606060); 
-            
-            for (let i = 0; i < MAX_LIGHTS; i++) {
-                const light = this.lights.addLight(0, 0, 100, 0xffffff, 0).setVisible(false);
-                lightPool.push(light);
+            // NOVO: Ativa as luzes apenas se não estiver em modo performance
+            if (!performanceMode) {
+                this.lights.enable();
+                this.lights.setAmbientColor(0x606060); 
+                for (let i = 0; i < MAX_LIGHTS; i++) {
+                    const light = this.lights.addLight(0, 0, 100, 0xffffff, 0).setVisible(false);
+                    lightPool.push(light);
+                }
             }
 
             stars = this.physics.add.group();
@@ -645,7 +754,9 @@
             player.body.setSize(playerHitboxWidth, playerHitboxHeight)
                 .setOffset((PLAYER_SPRITE_WIDTH - playerHitboxWidth) / 1.7, (PLAYER_SPRITE_HEIGHT - playerHitboxHeight) / 2);
 
-            player.setPipeline('Light2D');
+            if (!performanceMode) {
+                player.setPipeline('Light2D');
+            }
         }
 
         function setupGroups() {
@@ -681,7 +792,7 @@
         }
 
         function setupTimers() {
-            this.time.addEvent({ delay: 50, callback: spawnStar, callbackScope: this, loop: true });
+            this.time.addEvent({ delay: performanceMode ? 100 : 50, callback: spawnStar, callbackScope: this, loop: true });
             this.time.addEvent({ delay: 400, callback: firePlayerBullet, callbackScope: this, loop: true });
             enemySpawnTimer = this.time.addEvent({ delay: 2700, callback: spawnEnemy, callbackScope: this, loop: true });
             meteorSpawnTimer = this.time.addEvent({ delay: 6338, callback: spawnMeteor, callbackScope: this, loop: true });
@@ -730,21 +841,24 @@
                 const bulletHitboxSize = BULLET_SPRITE_WIDTH * 0.97;
                 this.body.setSize(bulletHitboxSize, bulletHitboxSize).setOffset((BULLET_SPRITE_WIDTH - bulletHitboxSize) / 2, (BULLET_SPRITE_HEIGHT - bulletHitboxSize) / 2);
 
-                this.setVelocity(vx, vy).setPipeline('Light2D');
+                this.setVelocity(vx, vy);
                 
-                if (this.bounces > 0) this.body.setCollideWorldBounds(true).setBounce(1);
+                if (bounces > 0) this.body.setCollideWorldBounds(true).setBounce(1);
 
-                this.light = getLightFromPool();
-                if (this.light) {
-                    const color = this.type === 'playerBullet' ? 0x00ffff : 0xff8c00;
-                    this.light.setPosition(x, y).setColor(color).setRadius(250).setVisible(true);
-                    this.scene.tweens.add({ targets: this.light, intensity: 1.5, duration: 100, ease: 'Sine.easeIn' });
+                if (!performanceMode) {
+                    this.setPipeline('Light2D');
+                    this.light = getLightFromPool();
+                    if (this.light) {
+                        const color = this.type === 'playerBullet' ? 0x00ffff : 0xff8c00;
+                        this.light.setPosition(x, y).setColor(color).setRadius(250).setVisible(true);
+                        this.scene.tweens.add({ targets: this.light, intensity: 1.5, duration: 100, ease: 'Sine.easeIn' });
+                    }
                 }
             }
             
             kill() {
                 if (!this.active) return;
-                if (this.light && this.light.visible) {
+                if (!performanceMode && this.light && this.light.visible) {
                     const lightToFade = this.light;
                     this.scene.tweens.add({
                         targets: lightToFade, intensity: 0, duration: 100, ease: 'Sine.easeOut',
@@ -758,7 +872,7 @@
             preUpdate(time, delta) {
                 super.preUpdate(time, delta);
                 if (!this.active) return;
-                if (this.light) this.light.setPosition(this.x, this.y);
+                if (!performanceMode && this.light) this.light.setPosition(this.x, this.y);
                 
                 if (this.bounces > 0) {
                     if (this.body.blocked.left || this.body.blocked.right) {
@@ -801,7 +915,10 @@
                 this.enableBody(true, x, y, true, true);
                 this.body.setSize(this.width * 0.97, this.height * 0.97);
 
-                this.setVelocityY(Phaser.Math.Between(80, 150)).setAngularVelocity(Phaser.Math.Between(-50, 50)).setPipeline('Light2D');
+                this.setVelocityY(Phaser.Math.Between(80, 150)).setAngularVelocity(Phaser.Math.Between(-50, 50));
+                if (!performanceMode) {
+                    this.setPipeline('Light2D');
+                }
 
                 this.healthBarBackground.setVisible(true); this.healthBar.setVisible(true);
                 this.updateHealthBar();
@@ -816,8 +933,8 @@
             kill() {
                 if (!this.active) return;
                 this.healthBarBackground.setVisible(false); this.healthBar.setVisible(false);
-                createExplosionLight(this.x, this.y, this.scene);
-                if (explosionEmitter) explosionEmitter.explode(15, this.x, this.y);
+                if (!performanceMode) createExplosionLight(this.x, this.y, this.scene);
+                if (explosionEmitter) explosionEmitter.explode(performanceMode ? 8 : 15, this.x, this.y);
                 this.dropPowerUp();
                 this.disableBody(true, true);
             }
@@ -867,7 +984,9 @@
                 this.level = level;
                 if (this.horizontalTween) this.horizontalTween.stop();
                 if (this.verticalTween) this.verticalTween.stop();
-                this.setPipeline('Light2D');
+                if (!performanceMode) {
+                    this.setPipeline('Light2D');
+                }
                 
                 this.isBoss = isBoss;
                 if (isBoss) this.spawnAsBoss(x, y);
@@ -1020,12 +1139,12 @@
             kill() {
                 if (!this.active) return;
                 this.setActive(false);
-                createExplosionLight(this.x, this.y, this.scene);
+                if (!performanceMode) createExplosionLight(this.x, this.y, this.scene);
                 this.fireTimer.paused = true;
                 this.healthBarBackground.setVisible(false); this.healthBar.setVisible(false); this.levelText.setVisible(false);
                 if (this.horizontalTween) this.horizontalTween.stop();
                 if (this.verticalTween) this.verticalTween.stop();
-                if (explosionEmitter) explosionEmitter.explode(this.isBoss ? 100 : 30, this.x, this.y);
+                if (explosionEmitter) explosionEmitter.explode(performanceMode ? 15 : (this.isBoss ? 100 : 30), this.x, this.y);
                 
                 if (!this.isBoss) {
                     score += this.level;
@@ -1085,7 +1204,10 @@
                 this.enableBody(true, x, y, true, true);
                 this.type = type;
                 this.setTexture('powerup_' + type);
-                this.setVelocityY(100).setPipeline('Light2D');
+                this.setVelocityY(100);
+                if (!performanceMode) {
+                    this.setPipeline('Light2D');
+                }
                 this.body.setSize(POWERUP_SPRITE_SIZE, POWERUP_SPRITE_SIZE);
             }
 
@@ -1129,7 +1251,7 @@
 
         function spawnStar() {
             if (!isGameStarted) return;
-            const x = Phaser.Math.Between(0, config.width);
+            const x = Phaser.Math.Between(0, game.config.width);
             const star = stars.create(x, -10, 'star_particle');
             if (star) {
                 star.setVelocityY(Phaser.Math.Between(50, 200)).setScale(Phaser.Math.FloatBetween(0.2, 1)).setAlpha(star.scale * 0.8);
@@ -1138,14 +1260,14 @@
 
         function spawnEnemy() {
             if (bossFightActive) return;
-            const x = Phaser.Math.Between(50, config.width - 50);
+            const x = Phaser.Math.Between(50, game.config.width - 50);
             const enemyLevelToSpawn = (baseEnemyLevel <= 3) ? baseEnemyLevel : Phaser.Math.Between(baseEnemyLevel - 2, baseEnemyLevel);
             const enemy = enemies.get();
             if (enemy) enemy.spawn(x, -50, false, enemyLevelToSpawn);
         }
         
         function spawnMeteor() {
-            const x = Phaser.Math.Between(50, config.width - 50);
+            const x = Phaser.Math.Between(50, game.config.width - 50);
             const meteor = meteors.get();
             if (meteor) meteor.spawn(x, -100);
         }
@@ -1158,13 +1280,13 @@
 
             if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'flex';
 
-            let warningText = this.add.text(config.width/2, config.height/2, 'WARNING!', { fontSize: '60px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 8 }).setOrigin(0.5).setDepth(200).setAlpha(0);
+            let warningText = this.add.text(game.config.width/2, game.config.height/2, 'WARNING!', { fontSize: '60px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 8 }).setOrigin(0.5).setDepth(200).setAlpha(0);
             this.tweens.add({
                 targets: warningText, alpha: 1, scale: {from: 2, to: 1}, duration: 500, yoyo: true, hold: 1500,
                 onComplete: () => {
                     warningText.destroy();
                     bossObject = enemies.get();
-                    if (bossObject) bossObject.spawn(config.width / 2, -100, true);
+                    if (bossObject) bossObject.spawn(game.config.width / 2, -100, true);
                 }
             });
         }
@@ -1330,8 +1452,8 @@
             player.setActive(false);
             this.physics.pause();
             this.time.pause();
-            createExplosionLight(player.x, player.y, this);
-            if (explosionEmitter) explosionEmitter.explode(50, player.x, player.y);
+            if (!performanceMode) createExplosionLight(player.x, player.y, this);
+            if (explosionEmitter) explosionEmitter.explode(performanceMode ? 25 : 50, player.x, player.y);
             if(player.shieldSprite) player.shieldSprite.setVisible(false);
             
             if(bossHealthContainerElement) bossHealthContainerElement.style.display = 'none';
@@ -1363,7 +1485,7 @@
         function togglePause() {
             if (!isGameStarted) return; 
             isPaused = !isPaused;
-            updateCursorVisibility(isPaused); // Mostra/esconde o cursor
+            updateCursorVisibility(isPaused);
             const pauseScreen = document.getElementById('pause-screen');
             if (isPaused) {
                 this.scene.pause();
@@ -1416,10 +1538,12 @@
 
         // --- Funções Utilitárias ---
         function getLightFromPool() {
+            if (performanceMode) return null;
             return lightPool.find(light => !light.visible) || null;
         }
 
         function createExplosionLight(x, y, scene) {
+            if (performanceMode) return;
             const light = getLightFromPool();
             if (light) {
                 light.setPosition(x, y).setColor(0xffff00).setRadius(350).setVisible(true);
@@ -1475,6 +1599,38 @@
                 exitIcon.style.display = 'none';
             }
         }
+
+        // NOVO: Adiciona os event listeners para a tela de configurações
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            initializeGame();
+
+            const startScreen = document.getElementById('start-screen');
+            const settingsScreen = document.getElementById('settings-screen');
+            
+            document.getElementById('settings-button').addEventListener('click', () => {
+                startScreen.style.visibility = 'hidden';
+                startScreen.style.opacity = '0';
+                settingsScreen.style.visibility = 'visible';
+                settingsScreen.style.opacity = '1';
+            });
+
+            document.getElementById('back-button').addEventListener('click', () => {
+                settingsScreen.style.visibility = 'hidden';
+                settingsScreen.style.opacity = '0';
+                startScreen.style.visibility = 'visible';
+                startScreen.style.opacity = '1';
+            });
+
+            document.getElementById('performance-toggle').addEventListener('change', (event) => {
+                performanceMode = event.target.checked;
+                localStorage.setItem('spaceShooterPerformanceMode', JSON.stringify(performanceMode));
+                applyPerformanceSettings();
+                // Alerta para reiniciar o jogo para que as mudanças mais pesadas (como o renderer) tenham efeito
+                alert('As configurações de desempenho foram alteradas. É recomendado reiniciar o jogo para que todas as mudanças tenham efeito.');
+            });
+        });
+
     </script>
 </body>
 </html>
