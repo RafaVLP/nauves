@@ -8,13 +8,13 @@ const GAME_CONFIG = {
     // --- Configurações Gerais de Dificuldade ---
     
     /** Pontuação necessária para o primeiro chefe aparecer. */
-    pointsForFirstBoss: 100,
+    pointsForFirstBoss: 50,
     
     /** * Multiplicador de dificuldade para cada novo estágio. 
      * Afeta a vida e o dano dos inimigos e chefes. 
      * Ex: 1.5 significa um aumento de 50% por estágio.
      */
-    difficultyIncreasePerStage: 1.5,
+    difficultyIncreasePerStage: 1.2,
     
     // NOVO: Multiplicador de velocidade dos inimigos por estágio. Ex: 1.1 = +10% de velocidade
     enemySpeedIncreasePerStage: 1.05,
@@ -35,8 +35,8 @@ const GAME_CONFIG = {
     
     /** Configurações de moedas dropadas por inimigos. */
     enemyCoinDrop: {
-        min: 1,
-        max: 5,
+        min: 5,
+        max: 15,
         multiplierPerLevel: 1.1 // Multiplicador baseado no nível do inimigo
     },
 
@@ -74,10 +74,10 @@ const GAME_CONFIG = {
     shop: {
         /** Preços iniciais para os upgrades na loja. */
         initialPrices: {
-            health: 300,
-            shield: 300,
-            crit: 300,
-            damage: 300
+            health: 200,
+            shield: 200,
+            crit: 200,
+            damage: 200
         },
         /** Multiplicador de aumento de preço a cada compra. */
         priceIncreaseMultiplier: 1.75,
