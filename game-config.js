@@ -8,7 +8,7 @@ const GAME_CONFIG = {
     // --- Configurações Gerais de Dificuldade ---
     
     /** Pontuação necessária para o primeiro chefe aparecer. */
-    pointsForFirstBoss: 50,
+    pointsForFirstBoss: 100,
     
     /** * Multiplicador de dificuldade para cada novo estágio. 
      * Afeta a vida e o dano dos inimigos e chefes. 
@@ -97,6 +97,6 @@ const GAME_CONFIG = {
         /** Velocidade base dos inimigos. */
         baseSpeed: 100,
         /** Intervalo base entre os tiros dos inimigos em milissegundos. */
-        baseFireRate: 2700 
+        baseFireRate: 3500 
     }
 };
