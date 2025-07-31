@@ -5,10 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Space Shooter: Boss Fight</title>
-    <script src="phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <!-- NOVO: Arquivo de configuração do jogo -->
-    <script src="game-config.js"></script>
+    <script>
+        // game-config.js content
+        const GAME_CONFIG = {
+            pointsForFirstBoss: 250,
+            initialMeteorHP: { min: 5, max: 15 },
+            initialEnemyHP: 10,
+            powerUpDropChance: 0.15, // 15% de chance
+            coinMeteorChance: 0.1, // 10% de chance
+            specialMeteorCoinDrop: 50,
+            enemyCoinDrop: { min: 1, max: 3, multiplierPerLevel: 0.5 },
+            difficultyIncreasePerStage: 1.25, // Aumenta a vida e dano dos inimigos em 25% por estágio
+            enemySpeedIncreasePerStage: 1.05, // Aumenta a velocidade dos inimigos em 5% por estágio
+            enemySpawnDelayReductionPerStage: 150, // Reduz o tempo de spawn em 150ms por estágio
+            initialCritChance: 0.05, // 5%
+            player: {
+                fireRate: 200, // ms
+                bulletSpeed: -600, // pixels/sec
+            },
+            enemy: {
+                baseSpeed: 100,
+                baseFireRate: 2500,
+            },
+            powerUpDistribution: {
+                'damage': 20,    // 20%
+                'health': 30,    // 30%
+                'extraShot': 20, // 20%
+                'shield': 30     // 30%
+            },
+            shop: {
+                healCost: 50,
+                initialPrices: {
+                    health: 100,
+                    shield: 150,
+                    crit: 200,
+                    damage: 250,
+                },
+                priceIncreaseMultiplier: 1.5,
+            }
+        };
+    </script>
     <style>
         /* --- Configurações Globais --- */
         :root {
@@ -522,15 +561,15 @@
                     </div>
                     <div class="stats-icons-container">
                         <div class="stat-item">
-                            <img id="damage-icon" class="stat-icon-img" src="Damage_Bonus.png" alt="Damage Icon"/>
+                            <img id="damage-icon" class="stat-icon-img" src="https://i.imgur.com/8N3z5jN.png" alt="Damage Icon"/>
                             <span class="value" id="damage-value">1</span>
                         </div>
                         <div class="stat-item">
-                            <img id="cannons-icon" class="stat-icon-img" src="Rockets_Bonus.png" alt="Cannons Icon"/>
+                            <img id="cannons-icon" class="stat-icon-img" src="https://i.imgur.com/ODp34tH.png" alt="Cannons Icon"/>
                             <span class="value" id="cannons-value">1</span>
                         </div>
                         <div id="shield-timer-container">
-                            <img id="shield-timer-icon" class="stat-icon-img" src="Armor_Bonus.png" alt="Shield Timer Icon"/>
+                            <img id="shield-timer-icon" class="stat-icon-img" src="https://i.imgur.com/YtA2x2B.png" alt="Shield Timer Icon"/>
                             <span id="shield-timer">30s</span>
                         </div>
                     </div>
@@ -769,27 +808,27 @@
 
         function preload() {
             // Áudio
-            this.load.audio('space1', 'space1.mp3');
-            this.load.audio('space2', 'space2.mp3');
-            this.load.audio('space3', 'space3.mp3');
-            this.load.audio('space5', 'space5.mp3');
-            this.load.audio('spaceboss', 'spaceboss.mp3');
+            this.load.audio('space1', 'https://cdn.jsdelivr.net/gh/samme/phaser-examples-assets@v1.0.0/assets/audio/space1.mp3');
+            this.load.audio('space2', 'https://cdn.jsdelivr.net/gh/samme/phaser-examples-assets@v1.0.0/assets/audio/space2.mp3');
+            this.load.audio('space3', 'https://cdn.jsdelivr.net/gh/samme/phaser-examples-assets@v1.0.0/assets/audio/space3.mp3');
+            this.load.audio('space5', 'https://cdn.jsdelivr.net/gh/samme/phaser-examples-assets@v1.0.0/assets/audio/space5.mp3');
+            this.load.audio('spaceboss', 'https://cdn.jsdelivr.net/gh/samme/phaser-examples-assets@v1.0.0/assets/audio/spaceboss.mp3');
 
             // Imagens
-            this.load.image('player_sprite', 'player1.png');
-            this.load.image('enemy1_sprite', 'enemy1.png');
-            this.load.image('boss_sprite', 'boss.png'); 
-            this.load.image('player_bullet_sprite', 'player_bullet.png');
-            this.load.image('enemy_bullet_sprite', 'enemy_bullet.png'); 
-            this.load.image('powerup_damage', 'Damage_Bonus.png');
-            this.load.image('powerup_health', 'HP_Bonus.png');
-            this.load.image('powerup_extraShot', 'Rockets_Bonus.png');
-            this.load.image('powerup_shield', 'Armor_Bonus.png');
+            this.load.image('player_sprite', 'https://i.imgur.com/7V1gT5v.png');
+            this.load.image('enemy1_sprite', 'https://i.imgur.com/T5g4v3W.png');
+            this.load.image('boss_sprite', 'https://i.imgur.com/OPhp25S.png'); 
+            this.load.image('player_bullet_sprite', 'https://i.imgur.com/g0z0Y0j.png');
+            this.load.image('enemy_bullet_sprite', 'https://i.imgur.com/G20gP5v.png'); 
+            this.load.image('powerup_damage', 'https://i.imgur.com/8N3z5jN.png');
+            this.load.image('powerup_health', 'https://i.imgur.com/Y1Z2V2b.png');
+            this.load.image('powerup_extraShot', 'https://i.imgur.com/ODp34tH.png');
+            this.load.image('powerup_shield', 'https://i.imgur.com/YtA2x2B.png');
             this.load.atlas('flares', 'https://labs.phaser.io/assets/particles/flares.png', 'https://labs.phaser.io/assets/particles/flares.json');
             
             for (let i = 1; i <= 10; i++) {
                 const num = i < 10 ? `0${i}` : i;
-                this.load.image(`Meteor_${num}`, `Meteor_${num}.png`);
+                this.load.image(`Meteor_${num}`, `https://i.imgur.com/p1pZUjA.png`); // Using a single meteor image for simplicity
             }
         }
 
@@ -1733,13 +1772,22 @@
             resumeGame(this); 
         }
 
+        /**
+         * CORREÇÃO: A função original chamava `resumeGame(this)`, que não funcionava neste contexto
+         * porque a flag `isPaused` não era verdadeira. A física do jogo era pausada em `endBossFight`
+         * mas nunca era retomada.
+         * * A solução é remover a chamada ineficaz e reativar manualmente a física com `this.physics.resume()`.
+         * Também foi adicionada a funcionalidade de mudar a cor de fundo a cada estágio.
+         */
         function startNextStage() {
             isStageClearing = false;
             document.getElementById('stage-clear-screen').style.visibility = 'hidden';
             document.getElementById('stage-clear-screen').style.opacity = '0';
 
-            resumeGame(this);
-            
+            // FIX: Reativa o motor de física que foi pausado em endBossFight()
+            this.physics.resume();
+            updateCursorVisibility(false);
+
             const spawnDelay = GAME_CONFIG.enemy.baseFireRate - (GAME_CONFIG.enemySpawnDelayReductionPerStage * (currentStage - 1));
             enemySpawnTimer.delay = Math.max(500, spawnDelay);
 
@@ -1759,6 +1807,11 @@
             }
 
             currentStage++;
+            
+            // NOVO: Muda a cor de fundo para o novo estágio
+            const backgroundColors = ['#061021', '#140621', '#210606', '#06211b', '#211b06'];
+            this.cameras.main.setBackgroundColor(backgroundColors[(currentStage - 1) % backgroundColors.length]);
+            
             scoreToNextBoss = score + (GAME_CONFIG.pointsForFirstBoss * currentStage);
             baseEnemyLevel = Math.ceil(baseEnemyLevel * GAME_CONFIG.difficultyIncreasePerStage);
 
@@ -2240,9 +2293,9 @@
                 musicEnabled = event.target.checked;
                 localStorage.setItem('spaceShooterMusicEnabled', JSON.stringify(musicEnabled));
                 if (musicEnabled && isGameStarted && !isPaused) {
-                    game.sound.resumeAll();
+                    if (game.sound) game.sound.resumeAll();
                 } else {
-                    game.sound.pauseAll();
+                    if (game.sound) game.sound.pauseAll();
                 }
             });
 
