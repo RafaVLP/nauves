@@ -14,7 +14,7 @@ const GAME_CONFIG = {
      * Afeta a vida e o dano dos inimigos e chefes. 
      * Ex: 1.5 significa um aumento de 50% por estágio.
      */
-    difficultyIncreasePerStage: 1.3,
+    difficultyIncreasePerStage: 1.5,
     
     // NOVO: Multiplicador de velocidade dos inimigos por estágio. Ex: 1.1 = +10% de velocidade
     enemySpeedIncreasePerStage: 1.05,
@@ -35,8 +35,8 @@ const GAME_CONFIG = {
     
     /** Configurações de moedas dropadas por inimigos. */
     enemyCoinDrop: {
-        min: 3,
-        max: 10,
+        min: 1,
+        max: 5,
         multiplierPerLevel: 1.1 // Multiplicador baseado no nível do inimigo
     },
 
