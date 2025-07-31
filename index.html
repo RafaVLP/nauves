@@ -622,7 +622,7 @@
             <div id="stage-clear-screen" class="overlay-screen">
                 <div id="stage-clear-panel" class="overlay-panel">
                     <h1 id="stage-clear-title" class="overlay-title">STAGE CLEAR!</h1>
-                    <button id="next-stage-button" class="overlay-button">ABRIR LOJA</button>
+                    <button id="next-stage-button" class="overlay-button">PROSSEGUIR</button>
                 </div>
             </div>
             
@@ -993,7 +993,7 @@
                 this.scene.restart();
             });
             
-            document.getElementById('next-stage-button').addEventListener('click', () => openShop.call(this, false));
+            document.getElementById('next-stage-button').addEventListener('click', () => startNextStage.call(this));
             document.getElementById('shop-action-button').addEventListener('click', () => {
                 if (isShopOpenFromPause) {
                     closeShopAndResume.call(this);
@@ -1018,7 +1018,7 @@
             
             const spawnDelay = GAME_CONFIG.enemy.baseFireRate - (GAME_CONFIG.enemySpawnDelayReductionPerStage * (currentStage - 1));
             enemySpawnTimer = this.time.addEvent({ 
-                delay: Math.max(500, spawnDelay), // Garante que o delay não seja menor que 0.5s
+                delay: Math.max(500, spawnDelay),
                 callback: spawnEnemy, 
                 callbackScope: this, 
                 loop: true 
@@ -1285,7 +1285,7 @@
             spawnAsMinion(x, y, level) {
                 this.setTexture('enemy1_sprite');
                 this.setAngle(0);
-                this.setScale(0.9); // Redução de 10%
+                this.setScale(0.9);
                 
                 const healthMultiplier = Math.pow(GAME_CONFIG.difficultyIncreasePerStage, currentStage - 1);
                 this.health = Math.ceil(GAME_CONFIG.initialEnemyHP * healthMultiplier * (1 + level * 0.2));
@@ -1625,7 +1625,7 @@
             const x = Phaser.Math.Between(0, game.config.width);
             const star = stars.create(x, -10, 'star_particle');
             if (star) {
-                star.setVelocityY(Phaser.Math.Between(50, 200)).setScale(Phaser.Math.FloatBetween(0.2, 1)).setAlpha(star.scale * 0.8);
+                star.setVelocityY(Phaser.Math.Between(150, 300)).setScale(Phaser.Math.FloatBetween(0.2, 1.2)).setAlpha(star.scale * 0.8);
             }
         }
 
@@ -1735,8 +1735,8 @@
 
         function startNextStage() {
             isStageClearing = false;
-            document.getElementById('shop-screen').style.visibility = 'hidden';
-            document.getElementById('shop-screen').style.opacity = '0';
+            document.getElementById('stage-clear-screen').style.visibility = 'hidden';
+            document.getElementById('stage-clear-screen').style.opacity = '0';
 
             resumeGame(this);
             
